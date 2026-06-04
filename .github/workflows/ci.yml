@@ -1,0 +1,55 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      - name: Install backend deps
+        run: cd backend && npm ci
+      - name: Run backend tests
+        run: cd backend && npm test
+
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      - name: Install frontend deps
+        run: cd frontend && npm ci
+      - name: Run frontend tests
+        run: cd frontend && npm test -- --watchAll=false
+
+  test-scraper:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install Python deps
+        run: cd scraper && pip install -r requirements.txt
+      - name: Run scraper tests
+        run: cd scraper && pytest tests/ -v
+
+  deploy:
+    needs: [test-backend, test-frontend, test-scraper]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build Docker images
+        run: docker-compose build
+      - name: Deploy to AWS
+        run: echo "Configure AWS deployment here"
