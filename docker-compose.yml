@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - '3000:3000'
+    environment:
+      - REACT_APP_API_URL=http://localhost:5000/api
+    depends_on:
+      - backend
+
+  backend:
+    build: ./backend
+    ports:
+      - '5000:5000'
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - postgres
+      - redis
+
+  scraper:
+    build: ./scraper
+    env_file:
+      - ./scraper/.env
+    depends_on:
+      - backend
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ecommerce_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/init.sql
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - '5050:80'
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+
+volumes:
+  postgres_data:
+
