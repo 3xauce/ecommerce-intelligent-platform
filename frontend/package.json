@@ -1,0 +1,29 @@
+{
+  "name": "ecommerce-frontend",
+  "version": "1.0.0",
+  "description": "Frontend - Plateforme E-Commerce Intelligente",
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.20.0",
+    "@reduxjs/toolkit": "^2.0.1",
+    "react-redux": "^9.0.2",
+    "@mui/material": "^5.15.0",
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
+    "tailwindcss": "^3.3.6",
+    "recharts": "^2.9.0",
+    "d3": "^7.8.5",
+    "axios": "^1.6.2",
+    "jspdf": "^2.5.1",
+    "@stripe/stripe-js": "^2.2.2",
+    "@stripe/react-stripe-js": "^2.4.0",
+    "react-i18next": "^13.5.0",
+    "socket.io-client": "^4.6.1"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test --coverage"
+  }
+}
