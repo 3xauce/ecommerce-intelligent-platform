@@ -268,12 +268,18 @@ PROXY_LIST_URL=your_proxy_provider_url
 
 ### Accès aux interfaces
 
-| Service | URL | Description |
-|---------|-----|-------------|
-| 🖥️ Frontend | `http://localhost:3000` | Interface utilisateur |
-| 🔌 API Backend | `http://localhost:5000/api` | API REST |
-| 📚 Swagger | `http://localhost:5000/api-docs` | Documentation API |
-| 🗄️ pgAdmin | `http://localhost:5050` | Administration BDD |
+| Service | URL (installation manuelle) | URL (Docker Compose) | Description |
+|---------|------------------------------|------------------------|-------------|
+| 🖥️ Frontend | `http://localhost:3000` | `http://localhost:3010` | Interface utilisateur |
+| 🔌 API Backend | `http://localhost:5001/api` | `http://localhost:5001/api` | API REST |
+| 📚 Swagger | `http://localhost:5001/api-docs` | `http://localhost:5001/api-docs` | Documentation API |
+| 🗄️ pgAdmin | — | `http://localhost:5050` | Administration BDD |
+
+> Le port 5000 par défaut d'Express est volontairement évité (5001 utilisé) :
+> il est réservé par Windows/Hyper-V sur certaines machines et provoque une
+> erreur `EACCES` au démarrage. Les ports Docker (3010, 5433 Postgres, 6380
+> Redis) sont eux aussi décalés pour ne pas entrer en conflit avec d'autres
+> projets déjà lancés sur la machine.
 
 ### Comptes par défaut (développement)
 

@@ -17,8 +17,6 @@ venv/
 logs/
 *.log
 
-# Docker
-.dockerignore
 
 # IDE
 .vscode/
