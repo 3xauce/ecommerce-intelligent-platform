@@ -14,7 +14,14 @@ const app = express();
 // crossOriginResourcePolicy: 'cross-origin' — les images produits doivent
 // pouvoir être chargées depuis le frontend (autre origine/port).
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000' }));
+// En développement, le port du serveur Vite peut changer (ex: 3000 déjà pris
+// par un autre service) — on reflète alors l'origine de la requête plutôt que
+// de la figer. En production, seule FRONTEND_URL est autorisée.
+app.use(
+  cors({
+    origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL : true,
+  })
+);
 
 // Doit être monté AVANT express.json() : Stripe exige le corps brut (Buffer)
 // pour vérifier la signature HMAC de la requête webhook.
