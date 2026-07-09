@@ -7,6 +7,7 @@ const swaggerUi = require('swagger-ui-express');
 
 const openapiSpec = require('./config/openapi');
 const { errorHandler, notFoundHandler } = require('./middlewares/errorHandler');
+const { handleStripeWebhook } = require('./controllers/orderWebhookController');
 
 const app = express();
 
@@ -14,6 +15,11 @@ const app = express();
 // pouvoir être chargées depuis le frontend (autre origine/port).
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000' }));
+
+// Doit être monté AVANT express.json() : Stripe exige le corps brut (Buffer)
+// pour vérifier la signature HMAC de la requête webhook.
+app.post('/api/orders/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
+
 app.use(express.json());
 app.use(
   rateLimit({
@@ -36,9 +42,10 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/categories', require('./routes/categories'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/cart', require('./routes/cart'));
+app.use('/api/orders', require('./routes/orders'));
 
 // Les routes suivantes sont ajoutées au fur et à mesure de leur implémentation :
-// /api/orders, /api/scraping, /api/analytics, /api/ai, /api/admin
+// /api/scraping, /api/analytics, /api/ai, /api/admin
 
 app.use(notFoundHandler);
 app.use(errorHandler);

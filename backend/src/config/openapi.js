@@ -409,6 +409,59 @@ const openapiSpec = {
         responses: { 200: { description: 'Panier mis à jour' }, 404: { description: 'Article absent du panier' } },
       },
     },
+    '/orders/checkout': {
+      post: {
+        summary: 'Transformer le panier en commande et créer un PaymentIntent Stripe',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  currency: { type: 'string', enum: ['usd', 'eur'], default: 'usd' },
+                  shipping_address: { type: 'object', nullable: true },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: { description: 'Commande créée, renvoie { order, clientSecret } pour finaliser le paiement côté frontend (Stripe Elements)' },
+          400: { description: 'Panier vide ou stock insuffisant' },
+        },
+      },
+    },
+    '/orders': {
+      get: {
+        summary: 'Historique des commandes de l’utilisateur connecté',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 } },
+          { name: 'offset', in: 'query', schema: { type: 'integer', default: 0 } },
+        ],
+        responses: { 200: { description: 'Liste paginée des commandes' } },
+      },
+    },
+    '/orders/{id}': {
+      get: {
+        summary: 'Détail d’une commande, avec ses articles (propriétaire ou admin)',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: {
+          200: { description: 'Commande + articles' },
+          403: { description: 'Non propriétaire' },
+          404: { description: 'Introuvable' },
+        },
+      },
+    },
+    '/orders/webhook': {
+      post: {
+        summary: 'Webhook Stripe (payment_intent.succeeded / payment_intent.payment_failed) — appelé par Stripe, pas par le frontend',
+        requestBody: { content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { 200: { description: 'Événement traité' }, 400: { description: 'Signature invalide' } },
+      },
+    },
   },
 };
 

@@ -21,6 +21,8 @@ let categories = [];
 let products = [];
 let carts = [];
 let cartItems = [];
+let orders = [];
+let orderItems = [];
 let seq = 1;
 
 const crypto = require('crypto');
@@ -48,6 +50,8 @@ function reset() {
   products = [];
   carts = [];
   cartItems = [];
+  orders = [];
+  orderItems = [];
   seq = 1;
 }
 
@@ -97,6 +101,11 @@ function extractProductsWhere(sql) {
 
 async function query(text, params = []) {
   const sql = text.replace(/\s+/g, ' ').trim();
+
+  // --- contrôle de transaction (utilisé par orderService via db.pool.connect()) ---
+  if (sql === 'BEGIN' || sql === 'COMMIT' || sql === 'ROLLBACK') {
+    return { rows: [] };
+  }
 
   // --- users ---
   if (sql.startsWith('INSERT INTO users')) {
@@ -424,6 +433,83 @@ async function query(text, params = []) {
     const [cartId] = params;
     cartItems = cartItems.filter((ci) => ci.cart_id !== cartId);
     return { rows: [] };
+  }
+
+  // --- décrément atomique de stock (checkout) ---
+  if (sql.startsWith('UPDATE products SET stock = stock -')) {
+    const [quantity, id] = params;
+    const product = products.find((p) => p.id === id);
+    if (!product || product.stock < quantity || !product.is_active) return { rows: [] };
+    product.stock -= quantity;
+    product.updated_at = new Date();
+    return { rows: [product] };
+  }
+
+  // --- orders / order_items ---
+  if (sql.startsWith('INSERT INTO orders')) {
+    const [customer_id, total, currency, shipping_address, stripe_payment_id] = params;
+    const order = {
+      id: nextId(),
+      customer_id,
+      status: 'pending',
+      total: Number(total),
+      currency,
+      stripe_payment_id: stripe_payment_id || null,
+      shipping_address: shipping_address || null,
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+    orders.push(order);
+    return { rows: [order] };
+  }
+
+  if (sql.startsWith('INSERT INTO order_items')) {
+    const [order_id, product_id, quantity, unit_price] = params;
+    const item = {
+      id: seq++,
+      order_id,
+      product_id,
+      quantity,
+      unit_price: Number(unit_price),
+    };
+    orderItems.push(item);
+    return { rows: [item] };
+  }
+
+  if (sql.startsWith('SELECT * FROM orders WHERE id')) {
+    const order = orders.find((o) => o.id === params[0]);
+    return { rows: order ? [order] : [] };
+  }
+
+  if (sql.startsWith('SELECT * FROM orders WHERE stripe_payment_id')) {
+    const order = orders.find((o) => o.stripe_payment_id === params[0]);
+    return { rows: order ? [order] : [] };
+  }
+
+  if (sql.startsWith('SELECT * FROM orders WHERE customer_id')) {
+    const [customerId, limit, offset] = params;
+    const rows = orders
+      .filter((o) => o.customer_id === customerId)
+      .sort((a, b) => b.created_at - a.created_at)
+      .slice(offset, offset + limit);
+    return { rows };
+  }
+
+  if (sql.startsWith('SELECT oi.*') && sql.includes('FROM order_items oi')) {
+    const [orderId] = params;
+    const rows = orderItems
+      .filter((oi) => oi.order_id === orderId)
+      .map((oi) => ({ ...oi, product_name: products.find((p) => p.id === oi.product_id)?.name }));
+    return { rows };
+  }
+
+  if (sql.startsWith('UPDATE orders SET status')) {
+    const [status, id] = params;
+    const order = orders.find((o) => o.id === id);
+    if (!order) return { rows: [] };
+    order.status = status;
+    order.updated_at = new Date();
+    return { rows: [order] };
   }
 
   throw new Error(`fakeDb: requête non gérée -> ${sql}`);
