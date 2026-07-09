@@ -1,3 +1,4 @@
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -9,7 +10,9 @@ const { errorHandler, notFoundHandler } = require('./middlewares/errorHandler');
 
 const app = express();
 
-app.use(helmet());
+// crossOriginResourcePolicy: 'cross-origin' — les images produits doivent
+// pouvoir être chargées depuis le frontend (autre origine/port).
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000' }));
 app.use(express.json());
 app.use(
@@ -21,6 +24,7 @@ app.use(
   })
 );
 
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openapiSpec));
 
 app.get('/api/health', (req, res) => {
@@ -29,9 +33,12 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
+app.use('/api/categories', require('./routes/categories'));
+app.use('/api/products', require('./routes/products'));
+app.use('/api/cart', require('./routes/cart'));
 
 // Les routes suivantes sont ajoutées au fur et à mesure de leur implémentation :
-// /api/products, /api/orders, /api/scraping, /api/analytics, /api/ai, /api/admin
+// /api/orders, /api/scraping, /api/analytics, /api/ai, /api/admin
 
 app.use(notFoundHandler);
 app.use(errorHandler);

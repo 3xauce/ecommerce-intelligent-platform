@@ -10,6 +10,10 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
+  if (err.name === 'MulterError') {
+    return res.status(400).json({ error: `Upload invalide: ${err.message}` });
+  }
+
   logger.error(err.message, { stack: err.stack });
   return res.status(500).json({ error: 'Erreur interne du serveur' });
 };

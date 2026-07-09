@@ -6,6 +6,9 @@ build/
 .env.local
 .env.production
 
+# Fichiers uploadés (générés à l'exécution, recréés automatiquement)
+backend/uploads/
+
 # Python
 __pycache__/
 *.pyc
