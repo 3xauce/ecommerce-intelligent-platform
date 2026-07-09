@@ -1,5 +1,5 @@
 import { useNavigate, Link as RouterLink, useLocation } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import Button from '@mui/material/Button';
@@ -8,25 +8,32 @@ import Container from '@mui/material/Container';
 import Avatar from '@mui/material/Avatar';
 import Tooltip from '@mui/material/Tooltip';
 import IconButton from '@mui/material/IconButton';
+import Badge from '@mui/material/Badge';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
+import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined';
 import Logo from '../common/Logo';
 import { useAuth } from '../../hooks/useAuth';
 import { logoutUser } from '../../store/slices/authSlice';
+import { cartReset } from '../../store/slices/cartSlice';
 import { tokens } from '../../theme/muiTheme';
 
-const navLinks = [
+const baseLinks = [
   { label: 'Accueil', to: '/' },
   { label: 'Produits', to: '/products' },
 ];
 
+const authLinks = [{ label: 'Mes commandes', to: '/orders' }];
+
 export default function Navbar() {
   const { user, isAuthenticated } = useAuth();
+  const itemCount = useSelector((state) => state.cart.cart.item_count);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
 
   const handleLogout = async () => {
     await dispatch(logoutUser());
+    dispatch(cartReset());
     navigate('/login');
   };
 
@@ -57,7 +64,7 @@ export default function Navbar() {
               flexGrow: 1,
             }}
           >
-            {navLinks.map((link) => {
+            {[...baseLinks, ...(isAuthenticated ? authLinks : [])].map((link) => {
               const active = location.pathname === link.to;
               return (
                 <Button
@@ -82,6 +89,22 @@ export default function Navbar() {
 
           {isAuthenticated ? (
             <Box className="flex items-center" sx={{ gap: 1 }}>
+              <Tooltip title="Mon panier">
+                <IconButton
+                  component={RouterLink}
+                  to="/cart"
+                  size="small"
+                  sx={{ color: tokens.textPrimary }}
+                >
+                  <Badge
+                    badgeContent={itemCount}
+                    color="primary"
+                    sx={{ '& .MuiBadge-badge': { fontWeight: 700 } }}
+                  >
+                    <ShoppingCartOutlinedIcon fontSize="small" />
+                  </Badge>
+                </IconButton>
+              </Tooltip>
               <Button
                 component={RouterLink}
                 to="/profile"

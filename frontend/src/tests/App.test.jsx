@@ -6,10 +6,11 @@ import { ThemeProvider } from '@mui/material/styles';
 import { configureStore } from '@reduxjs/toolkit';
 import App from '../App';
 import authReducer from '../store/slices/authSlice';
+import cartReducer from '../store/slices/cartSlice';
 import muiTheme from '../theme/muiTheme';
 
 function renderApp(initialEntries = ['/']) {
-  const store = configureStore({ reducer: { auth: authReducer } });
+  const store = configureStore({ reducer: { auth: authReducer, cart: cartReducer } });
   return render(
     <Provider store={store}>
       <ThemeProvider theme={muiTheme}>
@@ -36,6 +37,16 @@ describe('App', () => {
 
   it('redirige /profile vers /login quand non authentifié', () => {
     renderApp(['/profile']);
+    expect(screen.getByRole('heading', { name: /connexion/i })).toBeInTheDocument();
+  });
+
+  it('redirige /cart vers /login quand non authentifié', () => {
+    renderApp(['/cart']);
+    expect(screen.getByRole('heading', { name: /connexion/i })).toBeInTheDocument();
+  });
+
+  it('redirige /orders vers /login quand non authentifié', () => {
+    renderApp(['/orders']);
     expect(screen.getByRole('heading', { name: /connexion/i })).toBeInTheDocument();
   });
 

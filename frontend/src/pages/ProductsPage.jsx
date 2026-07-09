@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import Grid from '@mui/material/Grid';
@@ -9,10 +11,15 @@ import Alert from '@mui/material/Alert';
 import Chip from '@mui/material/Chip';
 import Skeleton from '@mui/material/Skeleton';
 import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
+import Snackbar from '@mui/material/Snackbar';
 import InputAdornment from '@mui/material/InputAdornment';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import Inventory2RoundedIcon from '@mui/icons-material/Inventory2Rounded';
+import AddShoppingCartRoundedIcon from '@mui/icons-material/AddShoppingCartRounded';
 import { productService } from '../services/productService';
+import { addCartItem } from '../store/slices/cartSlice';
+import { useAuth } from '../hooks/useAuth';
 import { tokens } from '../theme/muiTheme';
 
 const API_ORIGIN = import.meta.env.VITE_API_ORIGIN || 'http://localhost:5001';
@@ -39,7 +46,7 @@ function ProductSkeleton() {
   );
 }
 
-function ProductCard({ product }) {
+function ProductCard({ product, onAddToCart }) {
   const outOfStock = product.stock <= 0;
   const lowStock = !outOfStock && product.stock <= 5;
 
@@ -130,6 +137,18 @@ function ProductCard({ product }) {
             </Typography>
           )}
         </Box>
+
+        <Button
+          fullWidth
+          variant="outlined"
+          size="small"
+          disabled={outOfStock}
+          startIcon={<AddShoppingCartRoundedIcon />}
+          onClick={() => onAddToCart(product)}
+          sx={{ mt: 1.5 }}
+        >
+          {outOfStock ? 'Indisponible' : 'Ajouter au panier'}
+        </Button>
       </CardContent>
     </Card>
   );
@@ -140,7 +159,26 @@ export default function ProductsPage() {
   const [status, setStatus] = useState('loading');
   const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
+  const [snackbar, setSnackbar] = useState(null);
   const debouncedSearch = useDebouncedValue(search, 350);
+
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { isAuthenticated } = useAuth();
+
+  const handleAddToCart = async (product) => {
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: location } });
+      return;
+    }
+    const result = await dispatch(addCartItem({ productId: product.id, quantity: 1 }));
+    if (addCartItem.fulfilled.match(result)) {
+      setSnackbar({ severity: 'success', message: `« ${product.name} » ajouté au panier` });
+    } else {
+      setSnackbar({ severity: 'error', message: result.payload || "Impossible d'ajouter l'article" });
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -236,11 +274,24 @@ export default function ProductsPage() {
         <Grid container spacing={3}>
           {products.map((product) => (
             <Grid item xs={12} sm={6} md={3} key={product.id}>
-              <ProductCard product={product} />
+              <ProductCard product={product} onAddToCart={handleAddToCart} />
             </Grid>
           ))}
         </Grid>
       )}
+
+      <Snackbar
+        open={Boolean(snackbar)}
+        autoHideDuration={3200}
+        onClose={() => setSnackbar(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        {snackbar && (
+          <Alert severity={snackbar.severity} variant="filled" onClose={() => setSnackbar(null)}>
+            {snackbar.message}
+          </Alert>
+        )}
+      </Snackbar>
     </Container>
   );
 }

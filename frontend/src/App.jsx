@@ -8,12 +8,19 @@ import ProductsPage from './pages/ProductsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
+import CartPage from './pages/CartPage';
+import CheckoutPage from './pages/CheckoutPage';
+import OrdersPage from './pages/OrdersPage';
+import OrderDetailPage from './pages/OrderDetailPage';
 import NotFoundPage from './pages/NotFoundPage';
 import { fetchCurrentUser, sessionCleared } from './store/slices/authSlice';
+import { fetchCart, cartReset } from './store/slices/cartSlice';
+import { useAuth } from './hooks/useAuth';
 import { tokenStorage } from './utils/tokenStorage';
 
 export default function App() {
   const dispatch = useDispatch();
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     if (tokenStorage.getAccessToken()) {
@@ -22,10 +29,20 @@ export default function App() {
       dispatch(sessionCleared());
     }
 
-    const handleForcedLogout = () => dispatch(sessionCleared());
+    const handleForcedLogout = () => {
+      dispatch(sessionCleared());
+      dispatch(cartReset());
+    };
     window.addEventListener('auth:logout', handleForcedLogout);
     return () => window.removeEventListener('auth:logout', handleForcedLogout);
   }, [dispatch]);
+
+  // Synchronise le badge panier dès que l'utilisateur est connecté.
+  useEffect(() => {
+    if (isAuthenticated) {
+      dispatch(fetchCart());
+    }
+  }, [isAuthenticated, dispatch]);
 
   return (
     <Routes>
@@ -39,6 +56,38 @@ export default function App() {
           element={
             <ProtectedRoute>
               <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/cart"
+          element={
+            <ProtectedRoute>
+              <CartPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/checkout"
+          element={
+            <ProtectedRoute>
+              <CheckoutPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/orders"
+          element={
+            <ProtectedRoute>
+              <OrdersPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/orders/:id"
+          element={
+            <ProtectedRoute>
+              <OrderDetailPage />
             </ProtectedRoute>
           }
         />
