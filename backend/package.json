@@ -30,5 +30,11 @@
     "nodemon": "^3.0.2",
     "jest": "^29.7.0",
     "supertest": "^6.3.3"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "setupFiles": [
+      "<rootDir>/tests/env.setup.js"
+    ]
   }
 }

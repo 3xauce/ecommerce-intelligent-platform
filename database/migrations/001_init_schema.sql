@@ -1,9 +1,12 @@
 -- ==============================================
--- SCHEMA PostgreSQL - E-Commerce Intelligent
+-- Migration 001 : Schéma initial
+-- E-Commerce Intelligent Platform
 -- ==============================================
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- Users & Auth
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
@@ -16,7 +19,7 @@ CREATE TABLE users (
 );
 
 -- Categories
-CREATE TABLE categories (
+CREATE TABLE IF NOT EXISTS categories (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     slug VARCHAR(100) UNIQUE NOT NULL,
@@ -25,7 +28,7 @@ CREATE TABLE categories (
 );
 
 -- Products
-CREATE TABLE products (
+CREATE TABLE IF NOT EXISTS products (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     description TEXT,
@@ -40,7 +43,7 @@ CREATE TABLE products (
 );
 
 -- Orders
-CREATE TABLE orders (
+CREATE TABLE IF NOT EXISTS orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     customer_id UUID REFERENCES users(id),
     status VARCHAR(50) DEFAULT 'pending',
@@ -53,7 +56,7 @@ CREATE TABLE orders (
 );
 
 -- Order Items
-CREATE TABLE order_items (
+CREATE TABLE IF NOT EXISTS order_items (
     id SERIAL PRIMARY KEY,
     order_id UUID REFERENCES orders(id),
     product_id UUID REFERENCES products(id),
@@ -62,7 +65,7 @@ CREATE TABLE order_items (
 );
 
 -- Competitor Stores
-CREATE TABLE competitor_stores (
+CREATE TABLE IF NOT EXISTS competitor_stores (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     vendor_id UUID REFERENCES users(id),
     name VARCHAR(255) NOT NULL,
@@ -75,7 +78,7 @@ CREATE TABLE competitor_stores (
 );
 
 -- Scraped Data
-CREATE TABLE scraped_products (
+CREATE TABLE IF NOT EXISTS scraped_products (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     store_id UUID REFERENCES competitor_stores(id),
     product_name VARCHAR(255),
@@ -87,7 +90,7 @@ CREATE TABLE scraped_products (
 );
 
 -- Alerts
-CREATE TABLE alerts (
+CREATE TABLE IF NOT EXISTS alerts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     vendor_id UUID REFERENCES users(id),
     type VARCHAR(50),
@@ -97,7 +100,7 @@ CREATE TABLE alerts (
 );
 
 -- AI Predictions
-CREATE TABLE predictions (
+CREATE TABLE IF NOT EXISTS predictions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     product_id UUID REFERENCES products(id),
     prediction_type VARCHAR(50),
@@ -108,7 +111,7 @@ CREATE TABLE predictions (
 );
 
 -- Indexes
-CREATE INDEX idx_products_vendor ON products(vendor_id);
-CREATE INDEX idx_orders_customer ON orders(customer_id);
-CREATE INDEX idx_scraped_store ON scraped_products(store_id);
-CREATE INDEX idx_scraped_at ON scraped_products(scraped_at);
+CREATE INDEX IF NOT EXISTS idx_products_vendor ON products(vendor_id);
+CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(customer_id);
+CREATE INDEX IF NOT EXISTS idx_scraped_store ON scraped_products(store_id);
+CREATE INDEX IF NOT EXISTS idx_scraped_at ON scraped_products(scraped_at);

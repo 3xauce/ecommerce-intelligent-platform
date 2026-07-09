@@ -76,9 +76,7 @@ ecommerce-intelligent-platform/
 │   ├── training/              # Scripts dentraînement
 │   └── predictions/           # API de prédictions
 ├── database/
-│   ├── migrations/            # Migrations PostgreSQL
-│   ├── seeds/                 # Données initiales
-│   └── schema.sql             # Schéma complet
+│   └── migrations/            # Migrations PostgreSQL versionnées (001, 002, 003...)
 ├── docker/                    # Configuration Docker
 ├── .github/
 │   └── workflows/             # GitHub Actions CI/CD
