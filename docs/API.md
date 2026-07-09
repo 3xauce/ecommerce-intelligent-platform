@@ -21,10 +21,18 @@ Toutes les routes protégées nécessitent un header `Authorization: Bearer <tok
 - `POST /api/orders` - Créer une commande
 - `GET /api/orders/:id` - Détail commande
 
-### Scraping
-- `GET /api/scraping/stores` - Stores configurés
-- `POST /api/scraping/stores` - Ajouter un store
-- `POST /api/scraping/run/:storeId` - Lancer scraping
+### Scraping (vendeur/admin)
+- `GET /api/scraping/stores` - Stores concurrents configurés
+- `POST /api/scraping/stores` - Ajouter un store (platform: woocommerce | shopify | generic)
+- `PUT /api/scraping/stores/:id` - Modifier / activer / désactiver un store
+- `DELETE /api/scraping/stores/:id` - Supprimer un store et ses données
+- `GET /api/scraping/stores/:id/products` - Produits scrapés (paginé)
+- `POST /api/scraping/run/:storeId` - Lancer un scraping (job mis en file Redis,
+  traité par le worker Python `scraper/worker.py`)
+
+> Planification automatique : définir `SCRAPING_CRON` dans `backend/.env`
+> (ex. `0 * * * *` pour un passage horaire sur tous les stores actifs).
+> La documentation complète et à jour est servie par Swagger sur `/api-docs`.
 
 ### Analytics
 - `GET /api/analytics/dashboard` - KPIs dashboard

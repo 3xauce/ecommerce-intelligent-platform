@@ -36,9 +36,15 @@ services:
   scraper:
     build: ./scraper
     env_file:
-      - ./scraper/.env
+      - path: ./scraper/.env
+        required: false
+    environment:
+      # Réseau interne Docker (voir scraper/.env.example pour un usage local)
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ecommerce_db
+      - REDIS_URL=redis://redis:6379
     depends_on:
-      - backend
+      - postgres
+      - redis
 
   postgres:
     image: postgres:15

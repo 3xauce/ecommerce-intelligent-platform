@@ -23,6 +23,8 @@ let carts = [];
 let cartItems = [];
 let orders = [];
 let orderItems = [];
+let competitorStores = [];
+let scrapedProducts = [];
 let seq = 1;
 
 const crypto = require('crypto');
@@ -52,6 +54,8 @@ function reset() {
   cartItems = [];
   orders = [];
   orderItems = [];
+  competitorStores = [];
+  scrapedProducts = [];
   seq = 1;
 }
 
@@ -510,6 +514,79 @@ async function query(text, params = []) {
     order.status = status;
     order.updated_at = new Date();
     return { rows: [order] };
+  }
+
+  // --- competitor_stores ---
+  if (sql.startsWith('INSERT INTO competitor_stores')) {
+    const [vendor_id, name, url, platform, css_selectors] = params;
+    const store = {
+      id: nextId(),
+      vendor_id,
+      name,
+      url,
+      platform,
+      css_selectors: css_selectors ? JSON.parse(css_selectors) : null,
+      is_active: true,
+      last_scraped_at: null,
+      created_at: new Date(),
+    };
+    competitorStores.push(store);
+    return { rows: [store] };
+  }
+
+  if (sql.startsWith('SELECT * FROM competitor_stores WHERE id')) {
+    const store = competitorStores.find((s) => s.id === params[0]);
+    return { rows: store ? [store] : [] };
+  }
+
+  if (sql.startsWith('SELECT * FROM competitor_stores WHERE vendor_id')) {
+    const rows = competitorStores
+      .filter((s) => s.vendor_id === params[0])
+      .sort((a, b) => b.created_at - a.created_at);
+    return { rows };
+  }
+
+  if (sql.startsWith('SELECT * FROM competitor_stores WHERE is_active')) {
+    return { rows: competitorStores.filter((s) => s.is_active) };
+  }
+
+  if (sql.startsWith('SELECT * FROM competitor_stores ORDER BY')) {
+    return { rows: [...competitorStores].sort((a, b) => b.created_at - a.created_at) };
+  }
+
+  if (sql.startsWith('UPDATE competitor_stores SET name')) {
+    const [name, url, platform, css_selectors, is_active, id] = params;
+    const store = competitorStores.find((s) => s.id === id);
+    if (!store) return { rows: [] };
+    Object.assign(store, {
+      name,
+      url,
+      platform,
+      css_selectors: css_selectors ? JSON.parse(css_selectors) : null,
+      is_active,
+    });
+    return { rows: [store] };
+  }
+
+  if (sql.startsWith('DELETE FROM competitor_stores WHERE id')) {
+    const before = competitorStores.length;
+    competitorStores = competitorStores.filter((s) => s.id !== params[0]);
+    return { rows: [], rowCount: before - competitorStores.length };
+  }
+
+  // --- scraped_products ---
+  if (sql.startsWith('SELECT * FROM scraped_products WHERE store_id')) {
+    const [storeId, limit, offset] = params;
+    const rows = scrapedProducts
+      .filter((p) => p.store_id === storeId)
+      .sort((a, b) => b.scraped_at - a.scraped_at)
+      .slice(offset, offset + limit);
+    return { rows };
+  }
+
+  if (sql.startsWith('SELECT COUNT(*)::int AS total FROM scraped_products')) {
+    const total = scrapedProducts.filter((p) => p.store_id === params[0]).length;
+    return { rows: [{ total }] };
   }
 
   throw new Error(`fakeDb: requête non gérée -> ${sql}`);

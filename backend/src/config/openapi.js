@@ -462,6 +462,76 @@ const openapiSpec = {
         responses: { 200: { description: 'Événement traité' }, 400: { description: 'Signature invalide' } },
       },
     },
+    '/scraping/stores': {
+      get: {
+        summary: 'Lister ses stores concurrents configurés (vendeur : les siens, admin : tous)',
+        security: [{ bearerAuth: [] }],
+        responses: { 200: { description: 'Liste des stores' }, 403: { description: 'Réservé vendeur/admin' } },
+      },
+      post: {
+        summary: 'Configurer un store concurrent à surveiller',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['name', 'url', 'platform'],
+                properties: {
+                  name: { type: 'string' },
+                  url: { type: 'string', format: 'uri' },
+                  platform: { type: 'string', enum: ['woocommerce', 'shopify', 'generic'] },
+                  css_selectors: {
+                    type: 'object',
+                    description: 'Requis pour platform=generic : { product, name, price, link?, next_page?, render_js? }',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: { 201: { description: 'Store créé' }, 400: { description: 'Validation échouée' } },
+      },
+    },
+    '/scraping/stores/{id}': {
+      put: {
+        summary: 'Modifier un store concurrent (propriétaire ou admin)',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { 200: { description: 'Store mis à jour' }, 403: { description: 'Non propriétaire' } },
+      },
+      delete: {
+        summary: 'Supprimer un store concurrent et ses données scrapées',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { 204: { description: 'Supprimé' } },
+      },
+    },
+    '/scraping/stores/{id}/products': {
+      get: {
+        summary: 'Consulter les produits scrapés d’un store (paginé, plus récents en premier)',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 50 } },
+          { name: 'offset', in: 'query', schema: { type: 'integer', default: 0 } },
+        ],
+        responses: { 200: { description: 'Produits scrapés + last_scraped_at' } },
+      },
+    },
+    '/scraping/run/{storeId}': {
+      post: {
+        summary: 'Lancer un scraping immédiat (job mis en file Redis, traité par le worker Python)',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'storeId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: {
+          202: { description: 'Job mis en file' },
+          400: { description: 'Store désactivé' },
+          403: { description: 'Non propriétaire' },
+        },
+      },
+    },
   },
 };
 

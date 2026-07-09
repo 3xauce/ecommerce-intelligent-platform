@@ -50,9 +50,10 @@ app.use('/api/categories', require('./routes/categories'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/cart', require('./routes/cart'));
 app.use('/api/orders', require('./routes/orders'));
+app.use('/api/scraping', require('./routes/scraping'));
 
 // Les routes suivantes sont ajoutées au fur et à mesure de leur implémentation :
-// /api/scraping, /api/analytics, /api/ai, /api/admin
+// /api/analytics, /api/ai, /api/admin
 
 app.use(notFoundHandler);
 app.use(errorHandler);
