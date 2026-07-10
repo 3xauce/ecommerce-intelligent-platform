@@ -12,6 +12,7 @@ import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import OrdersPage from './pages/OrdersPage';
 import OrderDetailPage from './pages/OrderDetailPage';
+import DashboardPage from './pages/DashboardPage';
 import NotFoundPage from './pages/NotFoundPage';
 import { fetchCurrentUser, sessionCleared } from './store/slices/authSlice';
 import { fetchCart, cartReset } from './store/slices/cartSlice';
@@ -88,6 +89,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <OrderDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute roles={['vendeur', 'admin']}>
+              <DashboardPage />
             </ProtectedRoute>
           }
         />

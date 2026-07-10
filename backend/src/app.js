@@ -51,9 +51,10 @@ app.use('/api/products', require('./routes/products'));
 app.use('/api/cart', require('./routes/cart'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/scraping', require('./routes/scraping'));
+app.use('/api/analytics', require('./routes/analytics'));
 
 // Les routes suivantes sont ajoutées au fur et à mesure de leur implémentation :
-// /api/analytics, /api/ai, /api/admin
+// /api/ai, /api/admin
 
 app.use(notFoundHandler);
 app.use(errorHandler);

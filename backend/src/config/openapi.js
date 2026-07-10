@@ -520,6 +520,30 @@ const openapiSpec = {
         responses: { 200: { description: 'Produits scrapés + last_scraped_at' } },
       },
     },
+    '/analytics/dashboard': {
+      get: {
+        summary: 'KPIs + ventes par jour + top produits (vendeur : son périmètre, admin : plateforme)',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'days', in: 'query', schema: { type: 'integer', default: 30 } }],
+        responses: { 200: { description: 'kpis, sales_by_day, top_products' }, 403: { description: 'Réservé vendeur/admin' } },
+      },
+    },
+    '/analytics/competitors': {
+      get: {
+        summary: 'Comparaison concurrents : synthèse par store, tendance des prix moyens, derniers produits scrapés',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'days', in: 'query', schema: { type: 'integer', default: 30 } }],
+        responses: { 200: { description: 'summary, price_trend, latest_products' } },
+      },
+    },
+    '/analytics/export/csv': {
+      get: {
+        summary: 'Export CSV (type=sales : ventes 90 jours ; type=competitors : produits scrapés)',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'type', in: 'query', schema: { type: 'string', enum: ['sales', 'competitors'], default: 'sales' } }],
+        responses: { 200: { description: 'Fichier CSV (text/csv)' }, 400: { description: 'Type invalide' } },
+      },
+    },
     '/scraping/run/{storeId}': {
       post: {
         summary: 'Lancer un scraping immédiat (job mis en file Redis, traité par le worker Python)',

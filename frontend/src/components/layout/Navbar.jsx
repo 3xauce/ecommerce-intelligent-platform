@@ -23,6 +23,7 @@ const baseLinks = [
 ];
 
 const authLinks = [{ label: 'Mes commandes', to: '/orders' }];
+const businessLinks = [{ label: 'Dashboard', to: '/dashboard' }];
 
 export default function Navbar() {
   const { user, isAuthenticated } = useAuth();
@@ -64,7 +65,11 @@ export default function Navbar() {
               flexGrow: 1,
             }}
           >
-            {[...baseLinks, ...(isAuthenticated ? authLinks : [])].map((link) => {
+            {[
+              ...baseLinks,
+              ...(isAuthenticated ? authLinks : []),
+              ...(user && ['vendeur', 'admin'].includes(user.role) ? businessLinks : []),
+            ].map((link) => {
               const active = location.pathname === link.to;
               return (
                 <Button

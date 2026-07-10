@@ -516,6 +516,171 @@ async function query(text, params = []) {
     return { rows: [order] };
   }
 
+  // --- analytics (agrégats calculés en mémoire) ---
+  if (sql.includes('AS products_count')) {
+    const [vendorId] = params;
+    const scoped = products.filter((p) => !vendorId || p.vendor_id === vendorId);
+    return {
+      rows: [
+        {
+          products_count: scoped.length,
+          active_products: scoped.filter((p) => p.is_active).length,
+          low_stock_count: scoped.filter((p) => p.stock <= 5).length,
+        },
+      ],
+    };
+  }
+
+  if (sql.includes('AS revenue_paid')) {
+    const [vendorId] = params;
+    const lines = orderItems
+      .map((oi) => ({
+        oi,
+        order: orders.find((o) => o.id === oi.order_id),
+        product: products.find((p) => p.id === oi.product_id),
+      }))
+      .filter(
+        ({ order, product }) =>
+          order &&
+          order.status !== 'payment_failed' &&
+          (!vendorId || product?.vendor_id === vendorId)
+      );
+    const sum = (status) =>
+      lines
+        .filter(({ order }) => order.status === status)
+        .reduce((acc, { oi }) => acc + oi.quantity * oi.unit_price, 0);
+    return {
+      rows: [
+        {
+          orders_count: new Set(lines.map(({ order }) => order.id)).size,
+          revenue_paid: sum('paid'),
+          revenue_pending: sum('pending'),
+        },
+      ],
+    };
+  }
+
+  if (sql.includes('AS stores_count')) {
+    const [vendorId] = params;
+    const scopedStores = competitorStores.filter((s) => !vendorId || s.vendor_id === vendorId);
+    const storeIds = new Set(scopedStores.map((s) => s.id));
+    return {
+      rows: [
+        {
+          stores_count: scopedStores.length,
+          scraped_products_count: scrapedProducts.filter((p) => storeIds.has(p.store_id)).length,
+        },
+      ],
+    };
+  }
+
+  if (sql.includes('GROUP BY DATE(o.created_at)')) {
+    const [vendorId] = params;
+    const byDay = {};
+    for (const oi of orderItems) {
+      const order = orders.find((o) => o.id === oi.order_id);
+      const product = products.find((p) => p.id === oi.product_id);
+      if (!order || order.status === 'payment_failed') continue;
+      if (vendorId && product?.vendor_id !== vendorId) continue;
+      const day = order.created_at.toISOString().slice(0, 10);
+      byDay[day] = byDay[day] || { day, revenue: 0, orderIds: new Set() };
+      byDay[day].revenue += oi.quantity * oi.unit_price;
+      byDay[day].orderIds.add(order.id);
+    }
+    const rows = Object.values(byDay)
+      .map(({ day, revenue, orderIds }) => ({ day, revenue, orders: orderIds.size }))
+      .sort((a, b) => a.day.localeCompare(b.day));
+    return { rows };
+  }
+
+  if (sql.includes('AS units_sold')) {
+    const [vendorId, limit] = params;
+    const byProduct = {};
+    for (const oi of orderItems) {
+      const order = orders.find((o) => o.id === oi.order_id);
+      const product = products.find((p) => p.id === oi.product_id);
+      if (!order || order.status === 'payment_failed' || !product) continue;
+      if (vendorId && product.vendor_id !== vendorId) continue;
+      byProduct[product.id] = byProduct[product.id] || {
+        id: product.id,
+        name: product.name,
+        units_sold: 0,
+        revenue: 0,
+      };
+      byProduct[product.id].units_sold += oi.quantity;
+      byProduct[product.id].revenue += oi.quantity * oi.unit_price;
+    }
+    const rows = Object.values(byProduct)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, limit);
+    return { rows };
+  }
+
+  if (sql.startsWith('SELECT cs.id, cs.name, cs.platform')) {
+    const [vendorId] = params;
+    const rows = competitorStores
+      .filter((s) => !vendorId || s.vendor_id === vendorId)
+      .map((store) => {
+        const prices = scrapedProducts
+          .filter((p) => p.store_id === store.id)
+          .map((p) => p.price)
+          .filter((p) => p !== null && p !== undefined);
+        return {
+          id: store.id,
+          name: store.name,
+          platform: store.platform,
+          last_scraped_at: store.last_scraped_at,
+          scraped_count: scrapedProducts.filter((p) => p.store_id === store.id).length,
+          avg_price: prices.length
+            ? Math.round((prices.reduce((a, b) => a + b, 0) / prices.length) * 100) / 100
+            : null,
+          min_price: prices.length ? Math.min(...prices) : null,
+          max_price: prices.length ? Math.max(...prices) : null,
+        };
+      });
+    return { rows };
+  }
+
+  if (sql.startsWith('SELECT cs.name AS store_name, TO_CHAR')) {
+    const [vendorId] = params;
+    const byKey = {};
+    for (const sp of scrapedProducts) {
+      const store = competitorStores.find((s) => s.id === sp.store_id);
+      if (!store || (vendorId && store.vendor_id !== vendorId)) continue;
+      if (sp.price === null || sp.price === undefined) continue;
+      const day = sp.scraped_at.toISOString().slice(0, 10);
+      const key = `${store.name}|${day}`;
+      byKey[key] = byKey[key] || { store_name: store.name, day, prices: [] };
+      byKey[key].prices.push(sp.price);
+    }
+    const rows = Object.values(byKey)
+      .map(({ store_name, day, prices }) => ({
+        store_name,
+        day,
+        avg_price: Math.round((prices.reduce((a, b) => a + b, 0) / prices.length) * 100) / 100,
+      }))
+      .sort((a, b) => a.day.localeCompare(b.day));
+    return { rows };
+  }
+
+  if (sql.startsWith('SELECT sp.product_name')) {
+    const [vendorId, limit] = params;
+    const rows = scrapedProducts
+      .map((sp) => ({ sp, store: competitorStores.find((s) => s.id === sp.store_id) }))
+      .filter(({ store }) => store && (!vendorId || store.vendor_id === vendorId))
+      .sort((a, b) => b.sp.scraped_at - a.sp.scraped_at)
+      .slice(0, limit)
+      .map(({ sp, store }) => ({
+        product_name: sp.product_name,
+        price: sp.price,
+        stock_status: sp.stock_status,
+        url: sp.url,
+        scraped_at: sp.scraped_at,
+        store_name: store.name,
+      }));
+    return { rows };
+  }
+
   // --- competitor_stores ---
   if (sql.startsWith('INSERT INTO competitor_stores')) {
     const [vendor_id, name, url, platform, css_selectors] = params;
@@ -599,4 +764,14 @@ module.exports = {
   __users: () => users,
   __categories: () => categories,
   __products: () => products,
+  __seedScrapedProduct: (row) => {
+    scrapedProducts.push({
+      id: nextId(),
+      stock_status: 'in_stock',
+      url: 'https://exemple.test/produit',
+      scraped_at: new Date(),
+      raw_data: {},
+      ...row,
+    });
+  },
 };
