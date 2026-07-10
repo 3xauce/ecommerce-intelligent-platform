@@ -520,6 +520,43 @@ const openapiSpec = {
         responses: { 200: { description: 'Produits scrapés + last_scraped_at' } },
       },
     },
+    '/ai/predictions/{productId}': {
+      get: {
+        summary: 'Prévisions de ventes 30/60/90 jours d’un produit (régression scikit-learn, stockées en base)',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'productId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: {
+          200: { description: 'history + predictions [{period_days, predicted_units, confidence}]' },
+          403: { description: 'Non propriétaire' },
+          503: { description: 'Service IA indisponible' },
+        },
+      },
+    },
+    '/ai/trends': {
+      get: {
+        summary: 'Détection de tendances émergentes sur le catalogue (pente des ventes 30 j, classées hausse/stable/baisse)',
+        security: [{ bearerAuth: [] }],
+        responses: { 200: { description: 'trends triées par croissance' } },
+      },
+    },
+    '/ai/magic-compare': {
+      post: {
+        summary: "Magic Compare : analyse instantanée d'une URL produit concurrente (JSON-LD/OpenGraph) et positionnement prix vs votre catalogue",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { type: 'object', required: ['url'], properties: { url: { type: 'string', format: 'uri' } } },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'detected {name, price} + best_match {product, similarity, price_diff_pct, positioning}' },
+          422: { description: 'Aucun produit extractible de la page' },
+        },
+      },
+    },
     '/analytics/dashboard': {
       get: {
         summary: 'KPIs + ventes par jour + top produits (vendeur : son périmètre, admin : plateforme)',

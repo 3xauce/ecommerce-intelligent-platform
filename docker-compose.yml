@@ -29,9 +29,11 @@ services:
       - FRONTEND_URL=http://localhost:3010
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ecommerce_db
       - REDIS_URL=redis://redis:6379
+      - AI_SERVICE_URL=http://ai:8000
     depends_on:
       - postgres
       - redis
+      - ai
 
   scraper:
     build: ./scraper
@@ -45,6 +47,12 @@ services:
     depends_on:
       - postgres
       - redis
+
+  ai:
+    build: ./ai-module
+    ports:
+      # 8010 côté hôte : 8000 est souvent occupé par d'autres services locaux.
+      - '8010:8000'
 
   postgres:
     image: postgres:15

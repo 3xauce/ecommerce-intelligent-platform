@@ -25,6 +25,7 @@ let orders = [];
 let orderItems = [];
 let competitorStores = [];
 let scrapedProducts = [];
+let predictions = [];
 let seq = 1;
 
 const crypto = require('crypto');
@@ -56,6 +57,7 @@ function reset() {
   orderItems = [];
   competitorStores = [];
   scrapedProducts = [];
+  predictions = [];
   seq = 1;
 }
 
@@ -516,6 +518,47 @@ async function query(text, params = []) {
     return { rows: [order] };
   }
 
+  // --- prédictions IA (avant analytics : partage GROUP BY DATE) ---
+  if (sql.includes('SUM(oi.quantity)::int AS units FROM')) {
+    const [productId] = params;
+    const byDay = {};
+    for (const oi of orderItems) {
+      if (oi.product_id !== productId) continue;
+      const order = orders.find((o) => o.id === oi.order_id);
+      if (!order || order.status === 'payment_failed') continue;
+      const day = order.created_at.toISOString().slice(0, 10);
+      byDay[day] = (byDay[day] || 0) + oi.quantity;
+    }
+    const rows = Object.entries(byDay)
+      .map(([day, units]) => ({ day, units }))
+      .sort((a, b) => a.day.localeCompare(b.day));
+    return { rows };
+  }
+
+  if (sql.startsWith('INSERT INTO predictions')) {
+    const [product_id, prediction_type, predicted_value, confidence, period_days] = params;
+    const prediction = {
+      id: nextId(),
+      product_id,
+      prediction_type,
+      predicted_value: Number(predicted_value),
+      confidence: Number(confidence),
+      period_days,
+      created_at: new Date(),
+    };
+    predictions.push(prediction);
+    return { rows: [prediction] };
+  }
+
+  if (sql.startsWith('SELECT * FROM predictions WHERE product_id')) {
+    const [productId, limit] = params;
+    const rows = predictions
+      .filter((p) => p.product_id === productId)
+      .sort((a, b) => b.created_at - a.created_at)
+      .slice(0, limit);
+    return { rows };
+  }
+
   // --- analytics (agrégats calculés en mémoire) ---
   if (sql.includes('AS products_count')) {
     const [vendorId] = params;
@@ -764,6 +807,7 @@ module.exports = {
   __users: () => users,
   __categories: () => categories,
   __products: () => products,
+  __predictions: () => predictions,
   __seedScrapedProduct: (row) => {
     scrapedProducts.push({
       id: nextId(),

@@ -23,7 +23,10 @@ const baseLinks = [
 ];
 
 const authLinks = [{ label: 'Mes commandes', to: '/orders' }];
-const businessLinks = [{ label: 'Dashboard', to: '/dashboard' }];
+const businessLinks = [
+  { label: 'Dashboard', to: '/dashboard' },
+  { label: 'IA', to: '/ai' },
+];
 
 export default function Navbar() {
   const { user, isAuthenticated } = useAuth();

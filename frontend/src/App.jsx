@@ -13,6 +13,7 @@ import CheckoutPage from './pages/CheckoutPage';
 import OrdersPage from './pages/OrdersPage';
 import OrderDetailPage from './pages/OrderDetailPage';
 import DashboardPage from './pages/DashboardPage';
+import AiPage from './pages/AiPage';
 import NotFoundPage from './pages/NotFoundPage';
 import { fetchCurrentUser, sessionCleared } from './store/slices/authSlice';
 import { fetchCart, cartReset } from './store/slices/cartSlice';
@@ -97,6 +98,14 @@ export default function App() {
           element={
             <ProtectedRoute roles={['vendeur', 'admin']}>
               <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ai"
+          element={
+            <ProtectedRoute roles={['vendeur', 'admin']}>
+              <AiPage />
             </ProtectedRoute>
           }
         />

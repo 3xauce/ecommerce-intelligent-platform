@@ -52,9 +52,9 @@ app.use('/api/cart', require('./routes/cart'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/scraping', require('./routes/scraping'));
 app.use('/api/analytics', require('./routes/analytics'));
+app.use('/api/ai', require('./routes/ai'));
 
-// Les routes suivantes sont ajoutées au fur et à mesure de leur implémentation :
-// /api/ai, /api/admin
+// Route restante à implémenter : /api/admin
 
 app.use(notFoundHandler);
 app.use(errorHandler);
