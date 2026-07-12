@@ -12,7 +12,12 @@ const {
 
 const router = express.Router();
 
-router.get('/', validate(listProductsQuerySchema, 'query'), productController.listProducts);
+router.get(
+  '/',
+  optionalAuthenticate,
+  validate(listProductsQuerySchema, 'query'),
+  productController.listProducts
+);
 router.get('/:id', optionalAuthenticate, productController.getProduct);
 
 router.post(

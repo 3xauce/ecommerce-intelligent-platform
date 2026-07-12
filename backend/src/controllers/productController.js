@@ -19,6 +19,12 @@ const listProducts = asyncHandler(async (req, res) => {
     offset,
   } = req.query;
 
+  // Un vendeur qui consulte son propre catalogue (ou un admin) voit aussi
+  // ses produits désactivés — indispensable pour l'espace "Ma boutique".
+  const includeInactive = Boolean(
+    req.user && (req.user.role === 'admin' || (vendorId && vendorId === req.user.id))
+  );
+
   const result = await productModel.list({
     categoryId,
     vendorId,
@@ -27,6 +33,7 @@ const listProducts = asyncHandler(async (req, res) => {
     maxPrice,
     limit,
     offset,
+    includeInactive,
   });
 
   res.status(200).json({ items: result.items, total: result.total, limit, offset });

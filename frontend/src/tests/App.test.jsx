@@ -60,6 +60,11 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: /connexion/i })).toBeInTheDocument();
   });
 
+  it('redirige /my-shop vers /login quand non authentifié', () => {
+    renderApp(['/my-shop']);
+    expect(screen.getByRole('heading', { name: /connexion/i })).toBeInTheDocument();
+  });
+
   it('affiche une page 404 sur une route inconnue', () => {
     renderApp(['/route-inexistante']);
     expect(screen.getByText('404')).toBeInTheDocument();

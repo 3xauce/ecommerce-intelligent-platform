@@ -28,10 +28,15 @@ app.use(
 app.post('/api/orders/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
 
 app.use(express.json());
+
+// Limite appliquée aux routes /api uniquement (pas aux images statiques).
+// 100/15 min était trop agressif pour une SPA (polling des notifications,
+// dashboard multi-requêtes) : un seul utilisateur atteignait le 429.
 app.use(
+  '/api',
   rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 100,
+    max: Number(process.env.RATE_LIMIT_MAX) || 600,
     standardHeaders: true,
     legacyHeaders: false,
   })

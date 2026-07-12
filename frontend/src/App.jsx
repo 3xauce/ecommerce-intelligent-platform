@@ -14,6 +14,7 @@ import OrdersPage from './pages/OrdersPage';
 import OrderDetailPage from './pages/OrderDetailPage';
 import DashboardPage from './pages/DashboardPage';
 import AiPage from './pages/AiPage';
+import MyShopPage from './pages/MyShopPage';
 import AdminPage from './pages/AdminPage';
 import NotFoundPage from './pages/NotFoundPage';
 import { fetchCurrentUser, sessionCleared } from './store/slices/authSlice';
@@ -107,6 +108,14 @@ export default function App() {
           element={
             <ProtectedRoute roles={['vendeur', 'admin']}>
               <AiPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-shop"
+          element={
+            <ProtectedRoute roles={['vendeur', 'admin']}>
+              <MyShopPage />
             </ProtectedRoute>
           }
         />

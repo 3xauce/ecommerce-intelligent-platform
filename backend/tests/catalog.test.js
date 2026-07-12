@@ -114,6 +114,37 @@ describe('Produits', () => {
     expect(res.body.items).toHaveLength(0);
   });
 
+  it('le vendeur voit ses produits désactivés dans sa propre boutique', async () => {
+    const vendeur = await createUserWithRole(app, 'vendeur', 'vendeur-shop@shop.com');
+    const autre = await createUserWithRole(app, 'vendeur', 'vendeur-autre-shop@shop.com');
+
+    const createRes = await request(app)
+      .post('/api/products')
+      .set('Authorization', `Bearer ${vendeur.accessToken}`)
+      .send({ name: 'Produit masqué', price: 10, stock: 1 });
+
+    await request(app)
+      .put(`/api/products/${createRes.body.id}`)
+      .set('Authorization', `Bearer ${vendeur.accessToken}`)
+      .send({ name: 'Produit masqué', price: 10, stock: 1, is_active: false });
+
+    // Le propriétaire voit son produit inactif dans sa boutique
+    const own = await request(app)
+      .get(`/api/products?vendor_id=${vendeur.user.id}`)
+      .set('Authorization', `Bearer ${vendeur.accessToken}`);
+    expect(own.body.items).toHaveLength(1);
+    expect(own.body.items[0].is_active).toBe(false);
+
+    // Un autre vendeur (ou un anonyme) ne le voit pas
+    const other = await request(app)
+      .get(`/api/products?vendor_id=${vendeur.user.id}`)
+      .set('Authorization', `Bearer ${autre.accessToken}`);
+    expect(other.body.items).toHaveLength(0);
+
+    const anonymous = await request(app).get(`/api/products?vendor_id=${vendeur.user.id}`);
+    expect(anonymous.body.items).toHaveLength(0);
+  });
+
   it('filtre les produits par catégorie et recherche texte', async () => {
     const { accessToken } = await createUserWithRole(app, 'vendeur', 'vendeur3@shop.com');
     const admin = await createUserWithRole(app, 'admin', 'admin-cat@shop.com');

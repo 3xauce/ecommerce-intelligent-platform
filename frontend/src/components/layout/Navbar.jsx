@@ -25,6 +25,7 @@ const baseLinks = [
 
 const authLinks = [{ label: 'Mes commandes', to: '/orders' }];
 const businessLinks = [
+  { label: 'Ma boutique', to: '/my-shop' },
   { label: 'Dashboard', to: '/dashboard' },
   { label: 'IA', to: '/ai' },
 ];
