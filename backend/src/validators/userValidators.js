@@ -9,4 +9,8 @@ const updateRoleSchema = Joi.object({
   role: Joi.string().valid('admin', 'vendeur', 'client').required(),
 });
 
-module.exports = { updateProfileSchema, updateRoleSchema };
+const updateStatusSchema = Joi.object({
+  is_active: Joi.boolean().required(),
+});
+
+module.exports = { updateProfileSchema, updateRoleSchema, updateStatusSchema };

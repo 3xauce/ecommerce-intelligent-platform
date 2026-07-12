@@ -12,6 +12,7 @@ import Badge from '@mui/material/Badge';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined';
 import Logo from '../common/Logo';
+import NotificationBell from '../common/NotificationBell';
 import { useAuth } from '../../hooks/useAuth';
 import { logoutUser } from '../../store/slices/authSlice';
 import { cartReset } from '../../store/slices/cartSlice';
@@ -27,6 +28,7 @@ const businessLinks = [
   { label: 'Dashboard', to: '/dashboard' },
   { label: 'IA', to: '/ai' },
 ];
+const adminLinks = [{ label: 'Admin', to: '/admin' }];
 
 export default function Navbar() {
   const { user, isAuthenticated } = useAuth();
@@ -72,6 +74,7 @@ export default function Navbar() {
               ...baseLinks,
               ...(isAuthenticated ? authLinks : []),
               ...(user && ['vendeur', 'admin'].includes(user.role) ? businessLinks : []),
+              ...(user?.role === 'admin' ? adminLinks : []),
             ].map((link) => {
               const active = location.pathname === link.to;
               return (
@@ -97,6 +100,7 @@ export default function Navbar() {
 
           {isAuthenticated ? (
             <Box className="flex items-center" sx={{ gap: 1 }}>
+              <NotificationBell />
               <Tooltip title="Mon panier">
                 <IconButton
                   component={RouterLink}

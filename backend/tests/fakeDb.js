@@ -26,6 +26,7 @@ let orderItems = [];
 let competitorStores = [];
 let scrapedProducts = [];
 let predictions = [];
+let notifications = [];
 let seq = 1;
 
 const crypto = require('crypto');
@@ -58,6 +59,7 @@ function reset() {
   competitorStores = [];
   scrapedProducts = [];
   predictions = [];
+  notifications = [];
   seq = 1;
 }
 
@@ -516,6 +518,87 @@ async function query(text, params = []) {
     order.status = status;
     order.updated_at = new Date();
     return { rows: [order] };
+  }
+
+  // --- notifications ---
+  if (sql.startsWith('INSERT INTO notifications')) {
+    const [user_id, channel, title, message] = params;
+    const notification = {
+      id: nextId(),
+      user_id,
+      channel,
+      title,
+      message: message || null,
+      is_read: false,
+      created_at: new Date(),
+    };
+    notifications.push(notification);
+    return { rows: [notification] };
+  }
+
+  if (sql.startsWith('SELECT * FROM notifications WHERE user_id')) {
+    const [userId, limit, offset] = params;
+    const rows = notifications
+      .filter((n) => n.user_id === userId)
+      .sort((a, b) => b.created_at - a.created_at)
+      .slice(offset, offset + limit);
+    return { rows };
+  }
+
+  if (sql.includes('AS unread_count')) {
+    const [userId] = params;
+    const mine = notifications.filter((n) => n.user_id === userId);
+    return {
+      rows: [{ unread_count: mine.filter((n) => !n.is_read).length, total: mine.length }],
+    };
+  }
+
+  if (sql.startsWith('UPDATE notifications SET is_read = true WHERE id')) {
+    const [id, userId] = params;
+    const notification = notifications.find((n) => n.id === id && n.user_id === userId);
+    if (!notification) return { rows: [] };
+    notification.is_read = true;
+    return { rows: [notification] };
+  }
+
+  if (sql.startsWith('UPDATE notifications SET is_read = true WHERE user_id')) {
+    const [userId] = params;
+    notifications.filter((n) => n.user_id === userId).forEach((n) => {
+      n.is_read = true;
+    });
+    return { rows: [] };
+  }
+
+  // --- admin ---
+  if (sql.startsWith('SELECT role, COUNT(*)::int AS count FROM users')) {
+    const byRole = {};
+    for (const user of users) byRole[user.role] = (byRole[user.role] || 0) + 1;
+    return { rows: Object.entries(byRole).map(([role, count]) => ({ role, count })) };
+  }
+
+  if (sql.startsWith('SELECT o.*, u.email AS customer_email')) {
+    const [limit, offset] = params;
+    const rows = [...orders]
+      .sort((a, b) => b.created_at - a.created_at)
+      .slice(offset, offset + limit)
+      .map((order) => {
+        const customer = users.find((u) => u.id === order.customer_id);
+        return {
+          ...order,
+          customer_email: customer?.email || null,
+          first_name: customer?.first_name || null,
+          last_name: customer?.last_name || null,
+        };
+      });
+    return { rows };
+  }
+
+  if (sql.startsWith('UPDATE users SET is_active')) {
+    const [is_active, id] = params;
+    const user = users.find((u) => u.id === id);
+    if (!user) return { rows: [] };
+    user.is_active = is_active;
+    return { rows: [sanitizeUser(user)] };
   }
 
   // --- prédictions IA (avant analytics : partage GROUP BY DATE) ---

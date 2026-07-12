@@ -520,6 +520,54 @@ const openapiSpec = {
         responses: { 200: { description: 'Produits scrapés + last_scraped_at' } },
       },
     },
+    '/notifications': {
+      get: {
+        summary: 'Mes notifications (paginées) + compteur de non-lues',
+        security: [{ bearerAuth: [] }],
+        responses: { 200: { description: 'items, unread_count, total' } },
+      },
+    },
+    '/notifications/{id}/read': {
+      put: {
+        summary: 'Marquer une notification comme lue',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { 200: { description: 'Notification lue' }, 404: { description: 'Introuvable' } },
+      },
+    },
+    '/notifications/read-all': {
+      put: {
+        summary: 'Marquer toutes mes notifications comme lues',
+        security: [{ bearerAuth: [] }],
+        responses: { 204: { description: 'OK' } },
+      },
+    },
+    '/admin/stats': {
+      get: {
+        summary: 'Statistiques globales de la plateforme (admin) : utilisateurs par rôle, produits, commandes, CA, veille',
+        security: [{ bearerAuth: [] }],
+        responses: { 200: { description: 'users, products, orders, scraping' }, 403: { description: 'Réservé admin' } },
+      },
+    },
+    '/admin/orders': {
+      get: {
+        summary: 'Toutes les commandes de la plateforme avec email client (admin)',
+        security: [{ bearerAuth: [] }],
+        responses: { 200: { description: 'Liste paginée' } },
+      },
+    },
+    '/users/{id}/status': {
+      put: {
+        summary: "Activer/désactiver un compte utilisateur (admin, hors soi-même)",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { type: 'object', required: ['is_active'], properties: { is_active: { type: 'boolean' } } } } },
+        },
+        responses: { 200: { description: 'Statut mis à jour' }, 400: { description: 'Auto-désactivation interdite' } },
+      },
+    },
     '/ai/predictions/{productId}': {
       get: {
         summary: 'Prévisions de ventes 30/60/90 jours d’un produit (régression scikit-learn, stockées en base)',

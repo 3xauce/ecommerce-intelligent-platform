@@ -58,6 +58,14 @@ async function updateProfile(id, { firstName, lastName }) {
   return rows[0] || null;
 }
 
+async function setActive(id, isActive) {
+  const { rows } = await db.query(
+    `UPDATE users SET is_active = $1, updated_at = NOW() WHERE id = $2 RETURNING ${PUBLIC_COLUMNS}`,
+    [isActive, id]
+  );
+  return rows[0] || null;
+}
+
 async function updatePassword(id, passwordHash) {
   await db.query('UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2', [
     passwordHash,
@@ -74,5 +82,6 @@ module.exports = {
   list,
   updateRole,
   updateProfile,
+  setActive,
   updatePassword,
 };

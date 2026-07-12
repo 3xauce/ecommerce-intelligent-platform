@@ -53,8 +53,8 @@ app.use('/api/orders', require('./routes/orders'));
 app.use('/api/scraping', require('./routes/scraping'));
 app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/ai', require('./routes/ai'));
-
-// Route restante à implémenter : /api/admin
+app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/admin', require('./routes/admin'));
 
 app.use(notFoundHandler);
 app.use(errorHandler);

@@ -2,8 +2,11 @@ const db = require('../config/db');
 const cartModel = require('../models/cartModel');
 const orderModel = require('../models/orderModel');
 const { getStripeClient } = require('../config/stripe');
+const { notify } = require('./notificationService');
 const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
+
+const LOW_STOCK_THRESHOLD = 5;
 
 const SUPPORTED_CURRENCIES = ['usd', 'eur'];
 
@@ -42,6 +45,8 @@ async function checkout({ userId, currency = 'usd', shippingAddress }) {
 
   const client = await db.pool.connect();
   let order;
+  const vendorSales = new Map(); // vendor_id -> [{name, quantity}]
+  const lowStockProducts = []; // {vendor_id, name, stock}
   try {
     await client.query('BEGIN');
 
@@ -69,6 +74,20 @@ async function checkout({ userId, currency = 'usd', shippingAddress }) {
       if (!updatedProduct) {
         throw ApiError.conflict(`Stock insuffisant pour "${item.product_name}"`);
       }
+
+      if (updatedProduct.vendor_id) {
+        const sales = vendorSales.get(updatedProduct.vendor_id) || [];
+        sales.push({ name: updatedProduct.name, quantity: item.quantity });
+        vendorSales.set(updatedProduct.vendor_id, sales);
+
+        if (updatedProduct.stock <= LOW_STOCK_THRESHOLD) {
+          lowStockProducts.push({
+            vendor_id: updatedProduct.vendor_id,
+            name: updatedProduct.name,
+            stock: updatedProduct.stock,
+          });
+        }
+      }
     }
 
     await client.query('COMMIT');
@@ -77,6 +96,21 @@ async function checkout({ userId, currency = 'usd', shippingAddress }) {
     throw err;
   } finally {
     client.release();
+  }
+
+  // Notifications post-commande (jamais bloquantes pour le flux d'achat)
+  for (const [vendorId, sales] of vendorSales) {
+    const detail = sales.map((s) => `${s.quantity} × ${s.name}`).join(', ');
+    await notify(vendorId, {
+      title: 'Nouvelle commande reçue',
+      message: `Commande n° ${order.id.slice(0, 8).toUpperCase()} : ${detail}`,
+    });
+  }
+  for (const product of lowStockProducts) {
+    await notify(product.vendor_id, {
+      title: 'Alerte stock faible',
+      message: `"${product.name}" n'a plus que ${product.stock} unité(s) en stock`,
+    });
   }
 
   try {
@@ -101,6 +135,12 @@ async function handleStripeEvent(event) {
     if (order && order.status === 'pending') {
       await orderModel.updateStatus(order.id, 'paid');
       logger.info('Commande marquée payée', { orderId: order.id });
+      if (order.customer_id) {
+        await notify(order.customer_id, {
+          title: 'Paiement confirmé',
+          message: `Votre commande n° ${order.id.slice(0, 8).toUpperCase()} a bien été payée. Merci !`,
+        });
+      }
     }
   } else if (event.type === 'payment_intent.payment_failed') {
     const paymentIntent = event.data.object;

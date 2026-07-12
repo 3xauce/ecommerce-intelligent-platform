@@ -27,4 +27,13 @@ const updateUserRole = asyncHandler(async (req, res) => {
   res.status(200).json(user);
 });
 
-module.exports = { getMe, updateMe, listUsers, updateUserRole };
+const updateUserStatus = asyncHandler(async (req, res) => {
+  if (req.params.id === req.user.id) {
+    throw ApiError.badRequest('Vous ne pouvez pas désactiver votre propre compte');
+  }
+  const user = await userModel.setActive(req.params.id, req.body.is_active);
+  if (!user) throw ApiError.notFound('Utilisateur introuvable');
+  res.status(200).json(user);
+});
+
+module.exports = { getMe, updateMe, listUsers, updateUserRole, updateUserStatus };

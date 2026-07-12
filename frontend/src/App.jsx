@@ -14,6 +14,7 @@ import OrdersPage from './pages/OrdersPage';
 import OrderDetailPage from './pages/OrderDetailPage';
 import DashboardPage from './pages/DashboardPage';
 import AiPage from './pages/AiPage';
+import AdminPage from './pages/AdminPage';
 import NotFoundPage from './pages/NotFoundPage';
 import { fetchCurrentUser, sessionCleared } from './store/slices/authSlice';
 import { fetchCart, cartReset } from './store/slices/cartSlice';
@@ -106,6 +107,14 @@ export default function App() {
           element={
             <ProtectedRoute roles={['vendeur', 'admin']}>
               <AiPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute roles={['admin']}>
+              <AdminPage />
             </ProtectedRoute>
           }
         />
