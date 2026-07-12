@@ -220,8 +220,19 @@ npm start
 ```bash
 cd scraper
 python -m venv venv
-source venv/bin/activate  # Windows: venv\Scriptsctivate
+source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
+cp .env.example .env
+python worker.py          # consomme la file Redis de jobs de scraping
+```
+
+#### Module IA (Python)
+```bash
+cd ai-module
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+PORT=8010 python app.py   # microservice de prédiction (scikit-learn)
 ```
 
 ---
@@ -231,36 +242,35 @@ pip install -r requirements.txt
 Créez un fichier `.env` à la racine du dossier `backend/` :
 
 ```env
-# Base de données
-DATABASE_URL=postgresql://user:password@localhost:5432/ecommerce_db
-SUPABASE_URL=your_supabase_url
-SUPABASE_KEY=your_supabase_key
+# Base de données (5433 = port exposé par docker-compose)
+DATABASE_URL=postgresql://postgres:postgres@localhost:5433/ecommerce_db
 
 # Authentification
 JWT_SECRET=your_jwt_secret_key
 JWT_REFRESH_SECRET=your_refresh_secret
 
-# Paiement
-STRIPE_SECRET_KEY=sk_live_...
+# Paiement (clés de test Stripe : dashboard.stripe.com/test/apikeys)
+STRIPE_SECRET_KEY=sk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 
-# Redis
-REDIS_URL=redis://localhost:6379
+# Redis (file de jobs de scraping)
+REDIS_URL=redis://localhost:6380
 
-# Email
+# Planification du scraping (optionnel, format cron)
+SCRAPING_CRON=0 * * * *
+
+# Microservice IA
+AI_SERVICE_URL=http://localhost:8010
+
+# Email (notifications, reset de mot de passe — optionnel en dev)
 SMTP_HOST=smtp.example.com
 SMTP_PORT=587
 SMTP_USER=your_email
 SMTP_PASS=your_password
-
-# AWS
-AWS_ACCESS_KEY_ID=your_key
-AWS_SECRET_ACCESS_KEY=your_secret
-AWS_REGION=eu-west-1
-
-# Scraping
-PROXY_LIST_URL=your_proxy_provider_url
 ```
+
+Voir `backend/.env.example`, `frontend/.env.example`, `scraper/.env.example`
+et `ai-module/.env.example` pour la liste complète et commentée.
 
 ---
 
