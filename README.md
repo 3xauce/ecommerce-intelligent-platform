@@ -299,6 +299,13 @@ et `ai-module/.env.example` pour la liste complète et commentée.
 | Vendeur | `vendeur@platform.com` | `Vendeur123!` |
 | Client | `client@platform.com` | `Client123!` |
 
+### Boutique de démonstration
+
+`python database/seeds/seed_demo_shop.py` (backend démarré, `pip install pillow requests`)
+crée 6 catégories et 5 boutiques vendeurs — TechPro, Mode Urbaine, Maison Déco,
+Sport Plus, Belle Époque (`techpro@novacart.com`... mot de passe `Vendeur123!`) —
+avec 50 produits illustrés au total.
+
 ---
 
 ## 🧪 Tests

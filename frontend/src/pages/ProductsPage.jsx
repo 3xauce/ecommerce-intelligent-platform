@@ -18,6 +18,7 @@ import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import Inventory2RoundedIcon from '@mui/icons-material/Inventory2Rounded';
 import AddShoppingCartRoundedIcon from '@mui/icons-material/AddShoppingCartRounded';
 import { productService } from '../services/productService';
+import { categoryService } from '../services/categoryService';
 import { addCartItem } from '../store/slices/cartSlice';
 import { useAuth } from '../hooks/useAuth';
 import { tokens } from '../theme/muiTheme';
@@ -156,11 +157,24 @@ function ProductCard({ product, onAddToCart }) {
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [status, setStatus] = useState('loading');
   const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
   const [snackbar, setSnackbar] = useState(null);
   const debouncedSearch = useDebouncedValue(search, 350);
+
+  useEffect(() => {
+    let cancelled = false;
+    categoryService
+      .list()
+      .then((data) => !cancelled && setCategories(data))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -184,8 +198,12 @@ export default function ProductsPage() {
     let cancelled = false;
     setStatus('loading');
 
+    const params = {};
+    if (debouncedSearch) params.search = debouncedSearch;
+    if (selectedCategory) params.category_id = selectedCategory;
+
     productService
-      .list(debouncedSearch ? { search: debouncedSearch } : {})
+      .list(params)
       .then((data) => {
         if (!cancelled) {
           setProducts(data.items);
@@ -202,7 +220,7 @@ export default function ProductsPage() {
     return () => {
       cancelled = true;
     };
-  }, [debouncedSearch]);
+  }, [debouncedSearch, selectedCategory]);
 
   const skeletons = useMemo(() => Array.from({ length: 8 }, (_, i) => i), []);
 
@@ -243,6 +261,31 @@ export default function ProductsPage() {
           }}
         />
       </Box>
+
+      {/* Filtre par catégorie */}
+      {categories.length > 0 && (
+        <Box className="flex flex-wrap items-center" sx={{ gap: 1, mb: 3 }}>
+          <Chip
+            label="Tout"
+            size="small"
+            onClick={() => setSelectedCategory(null)}
+            color={selectedCategory === null ? 'primary' : 'default'}
+            variant={selectedCategory === null ? 'filled' : 'outlined'}
+          />
+          {categories.map((category) => (
+            <Chip
+              key={category.id}
+              label={category.name}
+              size="small"
+              onClick={() =>
+                setSelectedCategory(selectedCategory === category.id ? null : category.id)
+              }
+              color={selectedCategory === category.id ? 'primary' : 'default'}
+              variant={selectedCategory === category.id ? 'filled' : 'outlined'}
+            />
+          ))}
+        </Box>
+      )}
 
       {status === 'failed' && <Alert severity="error">{error}</Alert>}
 

@@ -30,6 +30,9 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ecommerce_db
       - REDIS_URL=redis://redis:6379
       - AI_SERVICE_URL=http://ai:8000
+    volumes:
+      # Persiste les images produits uploadées entre les rebuilds du conteneur
+      - uploads_data:/app/uploads
     depends_on:
       - postgres
       - redis
@@ -83,4 +86,5 @@ services:
 
 volumes:
   postgres_data:
+  uploads_data:
 
