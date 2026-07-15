@@ -11,7 +11,8 @@ import Alert from '@mui/material/Alert';
 import Chip from '@mui/material/Chip';
 import Skeleton from '@mui/material/Skeleton';
 import TextField from '@mui/material/TextField';
-import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
 import Snackbar from '@mui/material/Snackbar';
 import InputAdornment from '@mui/material/InputAdornment';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
@@ -125,31 +126,51 @@ function ProductCard({ product, onAddToCart }) {
           {product.description || 'Aucune description fournie.'}
         </Typography>
 
-        <Box className="flex items-baseline justify-between" sx={{ mt: 'auto', pt: 2 }}>
-          <Typography sx={{ fontWeight: 800, fontSize: '1.25rem', letterSpacing: '-0.02em' }}>
-            {Number(product.price).toFixed(2)}
-            <Box component="span" sx={{ fontSize: '0.85rem', fontWeight: 600, color: tokens.textSecondary, ml: 0.5 }}>
-              €
-            </Box>
-          </Typography>
-          {!outOfStock && (
-            <Typography variant="caption" sx={{ color: tokens.emerald, fontWeight: 600 }}>
-              En stock
+        <Box className="flex items-center justify-between" sx={{ mt: 'auto', pt: 2, gap: 1 }}>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography sx={{ fontWeight: 800, fontSize: '1.3rem', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+              {Number(product.price).toFixed(2)}
+              <Box
+                component="span"
+                sx={{ fontSize: '0.85rem', fontWeight: 600, color: tokens.textSecondary, ml: 0.5 }}
+              >
+                €
+              </Box>
             </Typography>
-          )}
-        </Box>
+            {!outOfStock && (
+              <Typography variant="caption" sx={{ color: tokens.emerald, fontWeight: 600 }}>
+                En stock
+              </Typography>
+            )}
+          </Box>
 
-        <Button
-          fullWidth
-          variant="outlined"
-          size="small"
-          disabled={outOfStock}
-          startIcon={<AddShoppingCartRoundedIcon />}
-          onClick={() => onAddToCart(product)}
-          sx={{ mt: 1.5 }}
-        >
-          {outOfStock ? 'Indisponible' : 'Ajouter au panier'}
-        </Button>
+          <Tooltip title={outOfStock ? 'Indisponible' : 'Ajouter au panier'}>
+            <span>
+              <IconButton
+                disabled={outOfStock}
+                onClick={() => onAddToCart(product)}
+                aria-label={`Ajouter ${product.name} au panier`}
+                sx={{
+                  width: 44,
+                  height: 44,
+                  color: '#fff',
+                  backgroundImage: outOfStock ? 'none' : tokens.gradient,
+                  backgroundColor: outOfStock ? 'rgba(15,23,42,0.06)' : 'transparent',
+                  boxShadow: outOfStock ? 'none' : '0 6px 16px rgba(99, 102, 241, 0.35)',
+                  transition: 'transform 160ms ease, box-shadow 160ms ease',
+                  '&:hover': {
+                    backgroundImage: tokens.gradient,
+                    transform: 'translateY(-2px) scale(1.04)',
+                    boxShadow: '0 10px 22px rgba(99, 102, 241, 0.45)',
+                  },
+                  '&:active': { transform: 'scale(0.96)' },
+                }}
+              >
+                <AddShoppingCartRoundedIcon sx={{ fontSize: 20 }} />
+              </IconButton>
+            </span>
+          </Tooltip>
+        </Box>
       </CardContent>
     </Card>
   );

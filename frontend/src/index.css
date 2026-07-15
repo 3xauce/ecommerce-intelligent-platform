@@ -19,6 +19,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  /* Aucune page ne doit jamais provoquer de défilement horizontal */
+  overflow-x: clip;
 }
 
 ::selection {

@@ -16,8 +16,14 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
 import PictureAsPdfRoundedIcon from '@mui/icons-material/PictureAsPdfRounded';
 import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
+import IosShareRoundedIcon from '@mui/icons-material/IosShareRounded';
+import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import Inventory2RoundedIcon from '@mui/icons-material/Inventory2Rounded';
 import ShoppingBagRoundedIcon from '@mui/icons-material/ShoppingBagRounded';
 import PaidRoundedIcon from '@mui/icons-material/PaidRounded';
@@ -66,7 +72,7 @@ function StatCard({ icon: Icon, label, value, hint, color = tokens.primary, bg =
         >
           <Icon sx={{ fontSize: 20, color }} />
         </Box>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" color="text.secondary" noWrap>
           {label}
         </Typography>
       </Box>
@@ -122,6 +128,7 @@ export default function DashboardPage() {
   const [competitors, setCompetitors] = useState(null);
   const [status, setStatus] = useState('loading');
   const [error, setError] = useState(null);
+  const [exportAnchor, setExportAnchor] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -216,7 +223,7 @@ export default function DashboardPage() {
           </Typography>
         </Box>
 
-        <Box className="flex flex-wrap items-center" sx={{ gap: 1.5 }}>
+        <Box className="flex items-center" sx={{ gap: 1.5 }}>
           <ToggleButtonGroup
             size="small"
             exclusive
@@ -227,15 +234,66 @@ export default function DashboardPage() {
             <ToggleButton value={30}>30 j</ToggleButton>
             <ToggleButton value={90}>90 j</ToggleButton>
           </ToggleButtonGroup>
-          <Button size="small" variant="outlined" startIcon={<DownloadRoundedIcon />} onClick={() => analyticsService.downloadCsv('sales')}>
-            CSV ventes
+
+          <Button
+            size="small"
+            variant="contained"
+            startIcon={<IosShareRoundedIcon sx={{ fontSize: 17 }} />}
+            endIcon={<ExpandMoreRoundedIcon />}
+            onClick={(e) => setExportAnchor(e.currentTarget)}
+          >
+            Exporter
           </Button>
-          <Button size="small" variant="outlined" startIcon={<DownloadRoundedIcon />} onClick={() => analyticsService.downloadCsv('competitors')}>
-            CSV concurrents
-          </Button>
-          <Button size="small" variant="contained" startIcon={<PictureAsPdfRoundedIcon />} onClick={handlePdf}>
-            Rapport PDF
-          </Button>
+          <Menu
+            anchorEl={exportAnchor}
+            open={Boolean(exportAnchor)}
+            onClose={() => setExportAnchor(null)}
+            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+            slotProps={{
+              paper: {
+                elevation: 6,
+                sx: { mt: 1, minWidth: 220, borderRadius: '12px', border: `1px solid ${tokens.border}` },
+              },
+            }}
+          >
+            <MenuItem
+              onClick={() => {
+                setExportAnchor(null);
+                analyticsService.downloadCsv('sales');
+              }}
+              sx={{ py: 1.1, mx: 0.75, borderRadius: '8px' }}
+            >
+              <ListItemIcon sx={{ minWidth: 34 }}>
+                <DownloadRoundedIcon sx={{ fontSize: 19 }} />
+              </ListItemIcon>
+              <ListItemText primary="CSV — ventes" primaryTypographyProps={{ fontSize: '0.88rem' }} />
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                setExportAnchor(null);
+                analyticsService.downloadCsv('competitors');
+              }}
+              sx={{ py: 1.1, mx: 0.75, borderRadius: '8px' }}
+            >
+              <ListItemIcon sx={{ minWidth: 34 }}>
+                <DownloadRoundedIcon sx={{ fontSize: 19 }} />
+              </ListItemIcon>
+              <ListItemText primary="CSV — concurrents" primaryTypographyProps={{ fontSize: '0.88rem' }} />
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                setExportAnchor(null);
+                handlePdf();
+              }}
+              sx={{ py: 1.1, mx: 0.75, borderRadius: '8px' }}
+            >
+              <ListItemIcon sx={{ minWidth: 34 }}>
+                <PictureAsPdfRoundedIcon sx={{ fontSize: 19, color: tokens.rose }} />
+              </ListItemIcon>
+              <ListItemText primary="Rapport PDF" primaryTypographyProps={{ fontSize: '0.88rem', fontWeight: 600 }} />
+            </MenuItem>
+          </Menu>
         </Box>
       </Box>
 
@@ -262,7 +320,7 @@ export default function DashboardPage() {
         <Grid item xs={6} md={3}>
           <StatCard
             icon={Inventory2RoundedIcon}
-            label="Produits au catalogue"
+            label="Produits"
             value={kpis.products_count}
             hint={`${kpis.low_stock_count} en stock faible (≤ 5)`}
             color="#F59E0B"
@@ -272,7 +330,7 @@ export default function DashboardPage() {
         <Grid item xs={6} md={3}>
           <StatCard
             icon={TravelExploreRoundedIcon}
-            label="Veille concurrentielle"
+            label="Stores surveillés"
             value={kpis.stores_count}
             hint={`${kpis.scraped_products_count} produits collectés`}
             color="#0EA5E9"
