@@ -94,16 +94,53 @@ function extractFromMeta(html) {
   return { name, price, currency: meta('product:price:currency'), source: 'opengraph' };
 }
 
+const CURRENCY_BY_SYMBOL = { '€': 'EUR', '£': 'GBP', $: 'USD' };
+
 function extractFallback(html) {
   const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-  const priceMatch =
-    html.match(/itemprop=["']price["'][^>]*content=["']([\d.,]+)["']/i) ||
-    html.match(/(\d{1,6}(?:[.,]\d{2}))\s*(?:€|EUR)/);
-  if (!titleMatch && !priceMatch) return null;
+
+  // Par ordre de fiabilité : microdonnée itemprop, élément dont la classe
+  // contient "price", symbole monétaire préfixé (£9.99) puis suffixé (9,99 €).
+  let price = null;
+  let currency = null;
+
+  const itemprop = html.match(/itemprop=["']price["'][^>]*content=["']([\d.,]+)["']/i);
+  if (itemprop) {
+    price = parsePriceText(itemprop[1]);
+  }
+
+  if (price === null) {
+    const priceClass = html.match(
+      /class=["'][^"']*price[^"']*["'][^>]*>\s*([^<]*?([€£$])?\s*\d[\d\s  .,]*)</i
+    );
+    if (priceClass) {
+      price = parsePriceText(priceClass[1]);
+      const symbol = priceClass[1].match(/[€£$]/);
+      if (symbol) currency = CURRENCY_BY_SYMBOL[symbol[0]];
+    }
+  }
+
+  if (price === null) {
+    const prefixed = html.match(/([€£$])\s*(\d{1,6}(?:[.,]\d{2})?)/);
+    if (prefixed) {
+      price = parsePriceText(prefixed[2]);
+      currency = CURRENCY_BY_SYMBOL[prefixed[1]];
+    }
+  }
+
+  if (price === null) {
+    const suffixed = html.match(/(\d{1,6}(?:[.,]\d{2}))\s*(€|EUR|£|GBP|\$|USD)/);
+    if (suffixed) {
+      price = parsePriceText(suffixed[1]);
+      currency = CURRENCY_BY_SYMBOL[suffixed[2]] || suffixed[2];
+    }
+  }
+
+  if (!titleMatch && price === null) return null;
   return {
     name: titleMatch ? titleMatch[1].trim() : null,
-    price: priceMatch ? parsePriceText(priceMatch[1]) : null,
-    currency: null,
+    price,
+    currency,
     source: 'heuristique',
   };
 }

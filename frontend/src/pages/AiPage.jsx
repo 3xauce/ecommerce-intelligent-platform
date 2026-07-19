@@ -227,7 +227,9 @@ function MagicCompareSection() {
           </Typography>
           <Typography sx={{ fontWeight: 700 }}>{result.detected.name || 'Nom inconnu'}</Typography>
           <Typography sx={{ fontWeight: 800, fontSize: '1.3rem', color: tokens.primary }}>
-            {result.detected.price != null ? euro(result.detected.price) : 'Prix non détecté'}
+            {result.detected.price != null
+              ? `${Number(result.detected.price).toFixed(2)} ${{ EUR: '€', GBP: '£', USD: '$' }[result.detected.currency] || result.detected.currency || '€'}`
+              : 'Prix non détecté'}
           </Typography>
 
           {result.best_match ? (

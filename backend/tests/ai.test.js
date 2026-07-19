@@ -234,3 +234,30 @@ describe('POST /api/ai/magic-compare', () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe('extractProductInfo — heuristique de prix (fallback)', () => {
+  const { extractProductInfo } = require('../src/services/magicCompareService');
+
+  it('détecte un prix préfixé £ dans un élément class="price..."', () => {
+    const html = `<html><head><title>A Light in the Attic | Books</title></head>
+      <body><p class="price_color">£51.77</p></body></html>`;
+    const info = extractProductInfo(html);
+    expect(info.price).toBe(51.77);
+    expect(info.currency).toBe('GBP');
+    expect(info.source).toBe('heuristique');
+  });
+
+  it('détecte un prix préfixé $ hors élément price', () => {
+    const html = '<html><head><title>Gadget</title></head><body><span>$19.99</span></body></html>';
+    const info = extractProductInfo(html);
+    expect(info.price).toBe(19.99);
+    expect(info.currency).toBe('USD');
+  });
+
+  it('détecte toujours un prix suffixé € (comportement historique)', () => {
+    const html = '<html><head><title>Produit</title></head><body><div>29,90 €</div></body></html>';
+    const info = extractProductInfo(html);
+    expect(info.price).toBe(29.9);
+    expect(info.currency).toBe('EUR');
+  });
+});
