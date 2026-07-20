@@ -5,4 +5,5 @@ export const aiService = {
     apiClient.get(`/ai/predictions/${productId}`).then((res) => res.data),
   trends: () => apiClient.get('/ai/trends').then((res) => res.data),
   magicCompare: (url) => apiClient.post('/ai/magic-compare', { url }).then((res) => res.data),
+  chatbot: (message) => apiClient.post('/ai/chatbot', { message }).then((res) => res.data),
 };

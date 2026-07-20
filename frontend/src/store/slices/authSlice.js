@@ -32,6 +32,19 @@ export const loginUser = createAsyncThunk(
   }
 );
 
+export const googleLogin = createAsyncThunk(
+  'auth/google',
+  async ({ credential, role }, { rejectWithValue }) => {
+    try {
+      const data = await authService.google(credential, role);
+      tokenStorage.setTokens(data);
+      return data.user;
+    } catch (error) {
+      return rejectWithValue(extractErrorMessage(error, 'Échec de la connexion Google'));
+    }
+  }
+);
+
 export const fetchCurrentUser = createAsyncThunk(
   'auth/fetchCurrentUser',
   async (_, { rejectWithValue }) => {
@@ -93,6 +106,18 @@ const authSlice = createSlice({
         state.user = action.payload;
       })
       .addCase(loginUser.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload;
+      })
+      .addCase(googleLogin.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(googleLogin.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.user = action.payload;
+      })
+      .addCase(googleLogin.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload;
       })

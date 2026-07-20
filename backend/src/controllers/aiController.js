@@ -2,6 +2,7 @@ const productModel = require('../models/productModel');
 const predictionModel = require('../models/predictionModel');
 const aiService = require('../services/aiService');
 const magicCompareService = require('../services/magicCompareService');
+const chatbotService = require('../services/chatbotService');
 const asyncHandler = require('../utils/asyncHandler');
 const ApiError = require('../utils/ApiError');
 
@@ -67,4 +68,9 @@ const magicCompare = asyncHandler(async (req, res) => {
   res.status(200).json(analysis);
 });
 
-module.exports = { getPredictions, getTrends, magicCompare };
+const chatbot = asyncHandler(async (req, res) => {
+  const reply = await chatbotService.answer(req.user.id, req.body.message);
+  res.status(200).json(reply);
+});
+
+module.exports = { getPredictions, getTrends, magicCompare, chatbot };

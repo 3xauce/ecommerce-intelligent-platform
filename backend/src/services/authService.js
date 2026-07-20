@@ -5,6 +5,7 @@ const tokenModel = require('../models/tokenModel');
 const tokenService = require('../services/tokenService');
 const parseDuration = require('../utils/parseDuration');
 const { sendEmail } = require('../utils/email');
+const { verifyGoogleCredential } = require('../config/googleAuth');
 const ApiError = require('../utils/ApiError');
 
 const SALT_ROUNDS = 10;
@@ -27,6 +28,50 @@ async function register({ email, password, firstName, lastName, role }) {
 
   const tokens = await tokenService.issueTokenPair(user);
   return { user, ...tokens };
+}
+
+/**
+ * Connexion / inscription via Google Identity Services. L'email vérifié par
+ * Google fait foi : si un compte existe on le connecte, sinon on le crée
+ * (rôle client, changeable ensuite par un admin). Un mot de passe aléatoire
+ * est stocké pour respecter le schéma — inutilisable tel quel, l'utilisateur
+ * peut définir le sien via "mot de passe oublié".
+ */
+async function googleAuth({ credential, role }) {
+  let payload;
+  try {
+    payload = await verifyGoogleCredential(credential);
+  } catch (err) {
+    if (err.code === 'GOOGLE_NOT_CONFIGURED') {
+      throw new ApiError(503, err.message);
+    }
+    throw ApiError.unauthorized('Jeton Google invalide ou expiré');
+  }
+
+  if (!payload?.email || payload.email_verified === false) {
+    throw ApiError.unauthorized('Email Google non vérifié');
+  }
+
+  let user = await userModel.findByEmail(payload.email);
+  let created = false;
+
+  if (!user) {
+    const randomPassword = crypto.randomBytes(32).toString('hex');
+    const passwordHash = await bcrypt.hash(randomPassword, SALT_ROUNDS);
+    user = await userModel.create({
+      email: payload.email,
+      passwordHash,
+      role: role === 'vendeur' ? 'vendeur' : 'client',
+      firstName: payload.given_name || payload.name || 'Utilisateur',
+      lastName: payload.family_name || 'Google',
+    });
+    created = true;
+  } else if (!user.is_active) {
+    throw ApiError.unauthorized('Compte désactivé');
+  }
+
+  const tokens = await tokenService.issueTokenPair(user);
+  return { user: userModel.sanitize(user), created, ...tokens };
 }
 
 async function login({ email, password }) {
@@ -98,4 +143,4 @@ async function resetPassword(plainToken, newPassword) {
   await tokenModel.revokeAllUserRefreshTokens(record.user_id);
 }
 
-module.exports = { register, login, refresh, logout, forgotPassword, resetPassword };
+module.exports = { register, googleAuth, login, refresh, logout, forgotPassword, resetPassword };

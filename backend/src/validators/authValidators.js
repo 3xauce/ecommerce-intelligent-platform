@@ -13,6 +13,11 @@ const loginSchema = Joi.object({
   password: Joi.string().required(),
 });
 
+const googleAuthSchema = Joi.object({
+  credential: Joi.string().required(),
+  role: Joi.string().valid('vendeur', 'client'),
+});
+
 const refreshSchema = Joi.object({
   refreshToken: Joi.string().required(),
 });
@@ -29,6 +34,7 @@ const resetPasswordSchema = Joi.object({
 module.exports = {
   registerSchema,
   loginSchema,
+  googleAuthSchema,
   refreshSchema,
   forgotPasswordSchema,
   resetPasswordSchema,

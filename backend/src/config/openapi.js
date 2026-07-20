@@ -455,6 +455,85 @@ const openapiSpec = {
         },
       },
     },
+    '/auth/google': {
+      post: {
+        summary: 'Connexion / inscription via Google Identity Services (ID token)',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['credential'],
+                properties: {
+                  credential: { type: 'string', description: 'ID token Google (JWT)' },
+                  role: { type: 'string', enum: ['vendeur', 'client'], description: "Rôle appliqué si le compte n'existe pas encore" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Connecté (compte existant)' },
+          201: { description: 'Compte créé et connecté' },
+          401: { description: 'Jeton Google invalide' },
+          503: { description: 'GOOGLE_CLIENT_ID non configuré côté serveur' },
+        },
+      },
+    },
+    '/shops/me': {
+      get: {
+        summary: 'Ma boutique (vendeur)',
+        security: [{ bearerAuth: [] }],
+        responses: { 200: { description: 'Boutique du vendeur' }, 404: { description: 'Pas encore de boutique' } },
+      },
+      put: {
+        summary: 'Modifier ma boutique',
+        security: [{ bearerAuth: [] }],
+        responses: { 200: { description: 'Boutique mise à jour' } },
+      },
+    },
+    '/shops': {
+      post: {
+        summary: 'Créer sa boutique (une par vendeur — requise avant de vendre)',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['name'],
+                properties: { name: { type: 'string' }, description: { type: 'string' } },
+              },
+            },
+          },
+        },
+        responses: { 201: { description: 'Boutique créée' }, 409: { description: 'Boutique déjà existante' } },
+      },
+      get: {
+        summary: 'Lister toutes les boutiques avec vendeur et compteurs (admin)',
+        security: [{ bearerAuth: [] }],
+        responses: { 200: { description: 'Liste des boutiques' }, 403: { description: 'Rôle insuffisant' } },
+      },
+    },
+    '/ai/chatbot': {
+      post: {
+        summary: 'Chatbot analytique (NLP à règles sur les données du vendeur)',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { type: 'object', required: ['message'], properties: { message: { type: 'string', maxLength: 500 } } },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Réponse { intent, text } fondée sur les données réelles' },
+        },
+      },
+    },
     '/orders/webhook': {
       post: {
         summary: 'Webhook Stripe (payment_intent.succeeded / payment_intent.payment_failed) — appelé par Stripe, pas par le frontend',

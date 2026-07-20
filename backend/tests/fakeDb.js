@@ -22,6 +22,7 @@ let products = [];
 let carts = [];
 let cartItems = [];
 let orders = [];
+let shops = [];
 let orderItems = [];
 let competitorStores = [];
 let scrapedProducts = [];
@@ -55,6 +56,7 @@ function reset() {
   carts = [];
   cartItems = [];
   orders = [];
+  shops = [];
   orderItems = [];
   competitorStores = [];
   scrapedProducts = [];
@@ -643,7 +645,7 @@ async function query(text, params = []) {
   }
 
   // --- analytics (agrégats calculés en mémoire) ---
-  if (sql.includes('AS products_count')) {
+  if (sql.includes('AS products_count') && !sql.includes('FROM shops')) {
     const [vendorId] = params;
     const scoped = products.filter((p) => !vendorId || p.vendor_id === vendorId);
     return {
@@ -878,6 +880,54 @@ async function query(text, params = []) {
   if (sql.startsWith('SELECT COUNT(*)::int AS total FROM scraped_products')) {
     const total = scrapedProducts.filter((p) => p.store_id === params[0]).length;
     return { rows: [{ total }] };
+  }
+
+  // --- shops ---
+  if (sql.startsWith('INSERT INTO shops')) {
+    const [vendor_id, name, description] = params;
+    const shop = {
+      id: nextId(),
+      vendor_id,
+      name,
+      description: description || null,
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+    shops.push(shop);
+    return { rows: [shop] };
+  }
+
+  if (sql.startsWith('SELECT * FROM shops WHERE vendor_id')) {
+    const shop = shops.find((s) => s.vendor_id === params[0]);
+    return { rows: shop ? [shop] : [] };
+  }
+
+  if (sql.startsWith('UPDATE shops SET name')) {
+    const [name, description, vendor_id] = params;
+    const shop = shops.find((s) => s.vendor_id === vendor_id);
+    if (!shop) return { rows: [] };
+    shop.name = name;
+    shop.description = description || null;
+    shop.updated_at = new Date();
+    return { rows: [shop] };
+  }
+
+  if (sql.startsWith('SELECT s.*,') && sql.includes('FROM shops s')) {
+    const rows = shops
+      .map((s) => {
+        const vendor = users.find((u) => u.id === s.vendor_id) || {};
+        const vendorProducts = products.filter((p) => p.vendor_id === s.vendor_id);
+        return {
+          ...s,
+          vendor_first_name: vendor.first_name,
+          vendor_last_name: vendor.last_name,
+          vendor_email: vendor.email,
+          products_count: vendorProducts.length,
+          active_products_count: vendorProducts.filter((p) => p.is_active).length,
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+    return { rows };
   }
 
   throw new Error(`fakeDb: requête non gérée -> ${sql}`);

@@ -13,6 +13,7 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
 import StorefrontOutlinedIcon from '@mui/icons-material/StorefrontOutlined';
 import AuthLayout from '../components/common/AuthLayout';
+import GoogleSignInButton from '../components/common/GoogleSignInButton';
 import { registerUser } from '../store/slices/authSlice';
 import { tokens } from '../theme/muiTheme';
 
@@ -60,7 +61,8 @@ export default function RegisterPage() {
     setSubmitting(false);
 
     if (registerUser.fulfilled.match(result)) {
-      navigate('/', { replace: true });
+      // Un vendeur enchaîne directement sur la création de sa boutique.
+      navigate(form.role === 'vendeur' ? '/my-shop' : '/', { replace: true });
     } else {
       setError(
         Array.isArray(result.payload)
@@ -171,6 +173,13 @@ export default function RegisterPage() {
           {submitting ? 'Création du compte...' : 'Créer mon compte'}
         </Button>
       </form>
+
+      <GoogleSignInButton
+        role={form.role}
+        onSuccess={(user) =>
+          navigate(user?.role === 'vendeur' ? '/my-shop' : '/', { replace: true })
+        }
+      />
 
       <Typography variant="body2" color="text.secondary" sx={{ mt: 3.5 }}>
         Déjà un compte ?{' '}

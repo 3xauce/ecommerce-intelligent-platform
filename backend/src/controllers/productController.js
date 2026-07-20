@@ -1,4 +1,5 @@
 const productModel = require('../models/productModel');
+const shopModel = require('../models/shopModel');
 const asyncHandler = require('../utils/asyncHandler');
 const ApiError = require('../utils/ApiError');
 
@@ -50,6 +51,14 @@ const getProduct = asyncHandler(async (req, res) => {
 });
 
 const createProduct = asyncHandler(async (req, res) => {
+  // Un vendeur doit avoir créé sa boutique avant de pouvoir vendre.
+  if (req.user.role === 'vendeur') {
+    const shop = await shopModel.findByVendorId(req.user.id);
+    if (!shop) {
+      throw ApiError.badRequest('Créez d’abord votre boutique avant d’ajouter des produits');
+    }
+  }
+
   const { name, description, price, stock, category_id: categoryId } = req.body;
   const product = await productModel.create({
     name,

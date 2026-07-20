@@ -14,6 +14,7 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import VisibilityRoundedIcon from '@mui/icons-material/VisibilityRounded';
 import VisibilityOffRoundedIcon from '@mui/icons-material/VisibilityOffRounded';
 import AuthLayout from '../components/common/AuthLayout';
+import GoogleSignInButton from '../components/common/GoogleSignInButton';
 import { loginUser } from '../store/slices/authSlice';
 
 export default function LoginPage() {
@@ -113,6 +114,8 @@ export default function LoginPage() {
           {submitting ? 'Connexion en cours...' : 'Se connecter'}
         </Button>
       </form>
+
+      <GoogleSignInButton onSuccess={() => navigate(redirectTo, { replace: true })} />
 
       <Typography variant="body2" color="text.secondary" sx={{ mt: 3.5 }}>
         Pas encore de compte ?{' '}

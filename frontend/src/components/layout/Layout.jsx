@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Navbar from './Navbar';
 import Footer from './Footer';
+import ChatbotWidget from '../common/ChatbotWidget';
 
 /**
  * Les pages gèrent elles-mêmes leur largeur (Container ou pleine largeur),
@@ -15,6 +16,7 @@ export default function Layout() {
         <Outlet />
       </Box>
       <Footer />
+      <ChatbotWidget />
     </Box>
   );
 }

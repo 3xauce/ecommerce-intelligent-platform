@@ -60,7 +60,11 @@ const accountSections = (role) => [
           header: 'Espace vendeur',
           items: [
             { label: 'Dashboard analytique', to: '/dashboard', icon: InsightsOutlinedIcon },
-            { label: 'Ma boutique', to: '/my-shop', icon: StorefrontOutlinedIcon },
+            {
+              label: role === 'admin' ? 'Boutiques' : 'Ma boutique',
+              to: '/my-shop',
+              icon: StorefrontOutlinedIcon,
+            },
             { label: 'Intelligence artificielle', to: '/ai', icon: AutoAwesomeOutlinedIcon },
           ],
         },

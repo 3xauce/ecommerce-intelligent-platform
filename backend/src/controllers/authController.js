@@ -20,6 +20,15 @@ const login = asyncHandler(async (req, res) => {
   res.status(200).json({ user, accessToken, refreshToken });
 });
 
+const googleAuth = asyncHandler(async (req, res) => {
+  const { credential, role } = req.body;
+  const { user, created, accessToken, refreshToken } = await authService.googleAuth({
+    credential,
+    role,
+  });
+  res.status(created ? 201 : 200).json({ user, created, accessToken, refreshToken });
+});
+
 const refresh = asyncHandler(async (req, res) => {
   const { refreshToken } = req.body;
   const result = await authService.refresh(refreshToken);
@@ -47,4 +56,4 @@ const resetPassword = asyncHandler(async (req, res) => {
   res.status(200).json({ message: 'Mot de passe mis à jour avec succès.' });
 });
 
-module.exports = { register, login, refresh, logout, forgotPassword, resetPassword };
+module.exports = { register, login, googleAuth, refresh, logout, forgotPassword, resetPassword };
