@@ -69,7 +69,7 @@ const magicCompare = asyncHandler(async (req, res) => {
 });
 
 const chatbot = asyncHandler(async (req, res) => {
-  const reply = await chatbotService.answer(req.user.id, req.body.message);
+  const reply = await chatbotService.answer(req.user, req.body.message);
   res.status(200).json(reply);
 });
 

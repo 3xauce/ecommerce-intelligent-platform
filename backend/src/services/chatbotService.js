@@ -1,8 +1,13 @@
 const analyticsModel = require('../models/analyticsModel');
+const orderModel = require('../models/orderModel');
+const cartModel = require('../models/cartModel');
+const productModel = require('../models/productModel');
 
 /**
- * Chatbot analytique à base de règles (NLP léger) : détecte l'intention
- * d'une question en français et répond avec les données réelles du vendeur.
+ * Chatbot à base de règles (NLP léger) : détecte l'intention d'une question
+ * en français et répond avec les données réelles de l'utilisateur. Les
+ * intentions dépendent du rôle : analytics pour vendeur/admin, assistance
+ * boutique (commandes, panier, recherche) pour les clients.
  * Aucun appel externe — déterministe, rapide, fonctionne hors ligne.
  */
 
@@ -21,7 +26,7 @@ function normalize(text) {
     .replace(/[̀-ͯ]/g, '');
 }
 
-const INTENTS = [
+const VENDOR_INTENTS = [
   {
     id: 'revenue',
     patterns: /(chiffre d.affaires|\bca\b|revenu|encaisse|combien.*(gagne|vendu))/,
@@ -117,23 +122,113 @@ const INTENTS = [
   },
 ];
 
-async function answer(vendorId, message) {
-  const text = normalize(message);
+// ---------------------------------------------------------------------------
+// Intentions côté client : suivi d'achats, panier, recherche dans le catalogue
+// ---------------------------------------------------------------------------
 
-  for (const intent of INTENTS) {
-    if (intent.patterns.test(text)) {
-      const result = await intent.run(vendorId);
+const ORDER_STATUS_LABELS = {
+  pending: 'en attente de paiement',
+  paid: 'payée',
+  payment_failed: 'en échec de paiement',
+};
+
+const CLIENT_INTENTS = [
+  {
+    id: 'my_orders',
+    patterns: /(commande|livraison|colis|suivi|achat)/,
+    async run(userId) {
+      const orders = await orderModel.listByCustomer(userId, { limit: 3 });
+      if (!orders.length) {
+        return {
+          text: "Vous n'avez pas encore passé de commande. Parcourez le catalogue pour trouver votre bonheur !",
+        };
+      }
+      const lines = orders.map((o) => {
+        const date = new Date(o.created_at).toLocaleDateString('fr-FR');
+        const status = ORDER_STATUS_LABELS[o.status] || o.status;
+        return `• Commande du ${date} — ${euro(o.total)} — ${status}`;
+      });
+      return {
+        text: `Vos dernières commandes :\n${lines.join('\n')}\nRetrouvez le détail dans « Mes commandes ».`,
+      };
+    },
+  },
+  {
+    id: 'my_cart',
+    patterns: /(panier|cart\b)/,
+    async run(userId) {
+      const cart = await cartModel.getOrCreateCart(userId);
+      const items = await cartModel.getItems(cart.id);
+      if (!items.length) {
+        return { text: 'Votre panier est vide. Ajoutez des produits depuis le catalogue !' };
+      }
+      const total = items.reduce(
+        (sum, item) => sum + Number(item.product_price) * item.quantity,
+        0
+      );
+      const count = items.reduce((sum, item) => sum + item.quantity, 0);
+      const lines = items
+        .slice(0, 4)
+        .map((i) => `• ${i.product_name} × ${i.quantity} — ${euro(i.product_price)}`);
+      return {
+        text: `Votre panier contient ${count} article${count > 1 ? 's' : ''} pour un total de ${euro(total)} :\n${lines.join('\n')}`,
+      };
+    },
+  },
+  {
+    id: 'product_search',
+    patterns: /(?:cherche[sz]?|trouve[rz]?|recherche|avez.vous|as.tu|y a.t.il)\s+(?:un[e]?\s+|des\s+|d[ue]\s+|le\s+|la\s+|les\s+)?(.{2,60})/,
+    async run(userId, match) {
+      const query = match[1].replace(/[?!.]/g, '').trim();
+      const { items } = await productModel.list({ search: query, limit: 3 });
+      if (!items.length) {
+        return { text: `Aucun produit trouvé pour « ${query} ». Essayez un autre mot-clé.` };
+      }
+      const lines = items.map((p) => `• ${p.name} — ${euro(p.price)}`);
+      return {
+        text: `Voici ce que j'ai trouvé pour « ${query} » :\n${lines.join('\n')}\nRetrouvez-les dans le catalogue.`,
+      };
+    },
+  },
+  {
+    id: 'help',
+    patterns: /(aide|help|quoi.*(demander|faire)|comment|bonjour|salut|hello)/,
+    async run() {
+      return {
+        text:
+          'Je vous aide dans vos achats. Essayez par exemple :\n' +
+          '• « Où en est ma commande ? »\n' +
+          '• « Que contient mon panier ? »\n' +
+          '• « Cherche un casque audio »',
+      };
+    },
+  },
+];
+
+const UNKNOWN_REPLIES = {
+  vendor:
+    "Je n'ai pas compris la question. Je sais répondre sur : le chiffre d'affaires, " +
+    'les commandes, les stocks faibles, les meilleures ventes, le catalogue et la ' +
+    'veille concurrentielle. Tapez « aide » pour des exemples.',
+  client:
+    "Je n'ai pas compris la question. Je peux vous renseigner sur vos commandes, " +
+    'votre panier, ou chercher un produit dans le catalogue. Tapez « aide » pour des exemples.',
+};
+
+async function answer(user, message) {
+  const text = normalize(message);
+  const isVendor = user.role === 'vendeur' || user.role === 'admin';
+  const intents = isVendor ? VENDOR_INTENTS : CLIENT_INTENTS;
+
+  for (const intent of intents) {
+    const match = intent.patterns.exec(text);
+    if (match) {
+      const result = await intent.run(user.id, match);
       return { intent: intent.id, ...result };
     }
   }
 
-  return {
-    intent: 'unknown',
-    text:
-      "Je n'ai pas compris la question. Je sais répondre sur : le chiffre d'affaires, " +
-      'les commandes, les stocks faibles, les meilleures ventes, le catalogue et la ' +
-      'veille concurrentielle. Tapez « aide » pour des exemples.',
-  };
+  return { intent: 'unknown', text: UNKNOWN_REPLIES[isVendor ? 'vendor' : 'client'] };
 }
 
 module.exports = { answer };

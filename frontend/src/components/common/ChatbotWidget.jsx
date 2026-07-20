@@ -15,27 +15,45 @@ import { aiService } from '../../services/aiService';
 import { useAuth } from '../../hooks/useAuth';
 import { tokens } from '../../theme/muiTheme';
 
-const WELCOME = {
-  from: 'bot',
-  text: 'Bonjour ! Je suis votre assistant analytique. Posez-moi une question sur votre activité, ou choisissez une suggestion ci-dessous.',
+// Accueil, sous-titre et suggestions adaptés au rôle de l'utilisateur :
+// analytics pour vendeur/admin, assistance boutique pour les clients.
+const PRESETS = {
+  vendor: {
+    subtitle: 'Analyse de votre activité',
+    welcome:
+      'Bonjour ! Je suis votre assistant analytique. Posez-moi une question sur votre activité, ou choisissez une suggestion ci-dessous.',
+    suggestions: [
+      'Quel est mon chiffre d’affaires ?',
+      'Produits en stock faible ?',
+      'Mes meilleures ventes',
+      'Prix des concurrents',
+    ],
+  },
+  client: {
+    subtitle: 'Aide et suivi de vos achats',
+    welcome:
+      'Bonjour ! Je peux suivre vos commandes, votre panier, ou chercher un produit. Que puis-je faire pour vous ?',
+    suggestions: [
+      'Où en est ma commande ?',
+      'Que contient mon panier ?',
+      'Cherche un casque audio',
+      'Aide',
+    ],
+  },
 };
 
-const SUGGESTIONS = [
-  'Quel est mon chiffre d’affaires ?',
-  'Produits en stock faible ?',
-  'Mes meilleures ventes',
-  'Prix des concurrents',
-];
-
 /**
- * Chatbot analytique flottant — visible uniquement pour les vendeurs et
- * admins connectés. Interroge POST /api/ai/chatbot (NLP à règles côté
- * backend, branché sur les données réelles du vendeur).
+ * Chatbot flottant — visible pour tout utilisateur connecté. Interroge
+ * POST /api/ai/chatbot (NLP à règles côté backend, branché sur les données
+ * réelles : analytics vendeur ou commandes/panier/catalogue client).
  */
 export default function ChatbotWidget() {
   const { user, isAuthenticated } = useAuth();
+  const isVendor = ['vendeur', 'admin'].includes(user?.role);
+  const preset = PRESETS[isVendor ? 'vendor' : 'client'];
+
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState([WELCOME]);
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [thinking, setThinking] = useState(false);
   const scrollRef = useRef(null);
@@ -46,7 +64,12 @@ export default function ChatbotWidget() {
     }
   }, [messages, open, thinking]);
 
-  if (!isAuthenticated || !['vendeur', 'admin'].includes(user?.role)) return null;
+  // Réinitialise la conversation quand l'utilisateur (donc le rôle) change.
+  useEffect(() => {
+    setMessages([{ from: 'bot', text: preset.welcome }]);
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!isAuthenticated) return null;
 
   const send = async (text) => {
     const message = text.trim();
@@ -110,7 +133,7 @@ export default function ChatbotWidget() {
                   Assistant Novacart
                 </Typography>
                 <Typography variant="caption" sx={{ opacity: 0.75 }}>
-                  Analyse de votre activité
+                  {preset.subtitle}
                 </Typography>
               </Box>
             </Box>
@@ -158,7 +181,7 @@ export default function ChatbotWidget() {
           {/* Suggestions (tant que l'utilisateur n'a pas écrit) */}
           {messages.length <= 1 && (
             <Box className="flex flex-wrap" sx={{ gap: 0.75, px: 2, pb: 1 }}>
-              {SUGGESTIONS.map((suggestion) => (
+              {preset.suggestions.map((suggestion) => (
                 <Chip
                   key={suggestion}
                   label={suggestion}
@@ -210,7 +233,7 @@ export default function ChatbotWidget() {
       {/* Bouton flottant */}
       <Fab
         onClick={() => setOpen((v) => !v)}
-        aria-label="Ouvrir l’assistant analytique"
+        aria-label="Ouvrir l’assistant"
         sx={{
           position: 'fixed',
           bottom: { xs: 20, sm: 28 },
