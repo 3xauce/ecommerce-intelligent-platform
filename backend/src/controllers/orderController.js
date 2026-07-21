@@ -30,4 +30,21 @@ const getOrder = asyncHandler(async (req, res) => {
   res.status(200).json({ ...order, items });
 });
 
-module.exports = { checkout, listOrders, getOrder };
+/**
+ * Synchronise le statut de paiement depuis Stripe (appelé au retour du
+ * checkout). Complète le webhook pour les environnements sans webhook
+ * configuré. L'accès est restreint au propriétaire de la commande / admin.
+ */
+const syncPayment = asyncHandler(async (req, res) => {
+  const order = await orderModel.findById(req.params.id);
+  if (!order) throw ApiError.notFound('Commande introuvable');
+  if (req.user.role !== 'admin' && order.customer_id !== req.user.id) {
+    throw ApiError.forbidden("Vous n'avez pas accès à cette commande");
+  }
+
+  const updated = await orderService.syncPaymentStatus(order.id);
+  const items = await orderModel.getItems(order.id);
+  res.status(200).json({ ...updated, items });
+});
+
+module.exports = { checkout, listOrders, getOrder, syncPayment };

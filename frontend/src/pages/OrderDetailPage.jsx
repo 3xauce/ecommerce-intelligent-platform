@@ -39,8 +39,14 @@ export default function OrderDetailPage() {
   useEffect(() => {
     let cancelled = false;
 
-    orderService
-      .getById(id)
+    // Au retour d'un paiement Stripe réussi, on synchronise d'abord le statut
+    // de la commande auprès de Stripe (complète le webhook) avant l'affichage.
+    const loader =
+      paymentReturn === 'succeeded'
+        ? orderService.syncPayment(id).catch(() => orderService.getById(id))
+        : orderService.getById(id);
+
+    loader
       .then((data) => {
         if (!cancelled) {
           setOrder(data);
@@ -57,7 +63,7 @@ export default function OrderDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, paymentReturn]);
 
   return (
     <Container maxWidth="md" sx={{ py: { xs: 5, md: 7 } }} className="anim-fade-up">

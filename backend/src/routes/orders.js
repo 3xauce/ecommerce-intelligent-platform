@@ -9,6 +9,7 @@ const router = express.Router();
 router.use(authenticate);
 
 router.post('/checkout', validate(checkoutSchema), orderController.checkout);
+router.post('/:id/sync-payment', orderController.syncPayment);
 router.get('/', validate(listOrdersQuerySchema, 'query'), orderController.listOrders);
 router.get('/:id', orderController.getOrder);
 

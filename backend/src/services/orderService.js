@@ -152,4 +152,38 @@ async function handleStripeEvent(event) {
   }
 }
 
-module.exports = { checkout, handleStripeEvent, SUPPORTED_CURRENCIES };
+/**
+ * Vérifie le statut réel du PaymentIntent auprès de Stripe et met la
+ * commande à jour. Complète le webhook (source de vérité en production) :
+ * en local/démo sans webhook configuré, cette vérification au retour du
+ * paiement permet quand même de marquer les commandes payées. La réponse
+ * de l'API Stripe fait foi — le client ne décide jamais du statut.
+ */
+async function syncPaymentStatus(orderId) {
+  const order = await orderModel.findById(orderId);
+  if (!order) return null;
+  if (order.status !== 'pending' || !order.stripe_payment_id) return order;
+
+  const stripe = getStripeClient();
+  const paymentIntent = await stripe.paymentIntents.retrieve(order.stripe_payment_id);
+
+  if (paymentIntent.status === 'succeeded') {
+    const updated = await orderModel.updateStatus(order.id, 'paid');
+    logger.info('Commande marquée payée (sync retour paiement)', { orderId: order.id });
+    if (order.customer_id) {
+      await notify(order.customer_id, {
+        title: 'Paiement confirmé',
+        message: `Votre commande n° ${order.id.slice(0, 8).toUpperCase()} a bien été payée. Merci !`,
+      });
+    }
+    return updated;
+  }
+
+  if (paymentIntent.status === 'canceled') {
+    return orderModel.updateStatus(order.id, 'payment_failed');
+  }
+
+  return order;
+}
+
+module.exports = { checkout, handleStripeEvent, syncPaymentStatus, SUPPORTED_CURRENCIES };
